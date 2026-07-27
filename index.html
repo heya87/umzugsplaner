@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>Umzugsplaner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#F5F5F3;
+  --card:#FFFFFF;
+  --border:#DFDDD6;
+  --border-strong:#C9C6BC;
+  --ink:#1B1E23;
+  --ink-soft:#565C64;
+  --accent:#2F5D54;
+  --accent-soft:#E4EEEC;
+  --warn:#A23E36;
+  --warn-soft:#F7E9E7;
+  --amber:#8F6A2E;
+  --amber-soft:#F5EEE0;
+  --grey-soft:#ECEBE7;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;font-size:15px;color-scheme:light;}
+.mono{font-family:'JetBrains Mono',monospace;}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 22px 70px;}
+
+/* ---------- Header ---------- */
+header.topbar{
+  display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:18px 22px;margin:-28px -22px 22px;border-radius:0 0 10px 10px;
+  background:var(--ink);
+}
+h1{font-size:1.7rem;margin:0;font-weight:800;letter-spacing:0;color:#ffffff !important;-webkit-text-fill-color:#ffffff;}
+.movebox{text-align:right;}
+.movebox label{display:block;font-size:0.75rem;color:rgba(255,255,255,0.65);margin-bottom:4px;font-weight:600;}
+.movebox input{
+  font-family:'JetBrains Mono',monospace;font-size:0.92rem;padding:6px 9px;
+  border:1px solid rgba(255,255,255,0.25);border-radius:5px;background:#fff;color:var(--ink);
+}
+.countdown{margin-top:5px;font-size:0.82rem;font-weight:700;color:#8FD9C4;}
+
+/* ---------- Tabs ---------- */
+nav.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+nav.tabs button{
+  background:var(--card);border:1px solid var(--border);border-radius:7px;padding:9px 16px;cursor:pointer;
+  font-size:0.87rem;color:var(--ink-soft);font-weight:600;
+}
+nav.tabs button.active{color:#fff;background:var(--accent);border-color:var(--accent);}
+section.panel{display:none;}
+section.panel.active{display:block;}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:18px;}
+h2.section-title{font-size:1rem;font-weight:700;margin:0 0 4px;color:var(--ink);}
+p.section-desc{color:var(--ink-soft);font-size:0.85rem;margin:0 0 14px;line-height:1.4;}
+
+/* ---------- Progress ---------- */
+.progress-track{height:8px;background:var(--grey-soft);border-radius:5px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);transition:width .3s ease;}
+.progress-label{font-size:0.78rem;color:var(--ink-soft);margin-top:6px;}
+
+/* ---------- People management ---------- */
+.people-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+.person-chip{
+  display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);
+  border-radius:14px;padding:4px 6px 4px 11px;font-size:0.8rem;font-weight:600;
+}
+.person-chip button{border:none;background:none;color:var(--accent);cursor:pointer;font-size:0.85rem;line-height:1;padding:0 4px;}
+.add-person-form{display:flex;gap:6px;margin-top:8px;}
+.add-person-form input{flex:1;max-width:220px;padding:6px 9px;border:1px solid var(--border-strong);border-radius:5px;font-size:0.85rem;}
+
+/* ---------- Add task form ---------- */
+form.add-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+form.add-form .field{display:flex;flex-direction:column;gap:4px;}
+form.add-form label{font-size:0.68rem;color:var(--ink-soft);font-weight:600;}
+form.add-form input, form.add-form select{
+  padding:7px 9px;border:1px solid var(--border-strong);border-radius:5px;background:#fff;font-size:0.85rem;font-family:'Inter',sans-serif;
+}
+form.add-form input[type=text]{min-width:210px;flex:1;}
+.datetype-toggle{display:flex;gap:4px;}
+.datetype-toggle button{
+  border:1px solid var(--border-strong);background:#fff;padding:7px 10px;font-size:0.78rem;cursor:pointer;border-radius:5px;
+}
+.datetype-toggle button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.btn{
+  border:1px solid var(--accent);background:var(--accent);color:#fff;padding:8px 15px;border-radius:5px;
+  cursor:pointer;font-size:0.83rem;font-weight:600;
+}
+.btn:hover{filter:brightness(1.08);}
+.btn.ghost{background:#fff;color:var(--ink-soft);border-color:var(--border-strong);}
+.btn.small{padding:5px 10px;font-size:0.74rem;}
+
+/* ---------- Filters ---------- */
+.filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.filters select{padding:6px 8px;border:1px solid var(--border-strong);border-radius:5px;background:#fff;font-size:0.8rem;}
+
+/* ---------- Task rows ---------- */
+.task-row{
+  display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--border);
+  border-radius:6px;padding:9px 11px;margin-bottom:6px;
+}
+.task-row.done{opacity:0.5;}
+.task-row.overdue{border-color:var(--warn);}
+.task-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:0 0 auto;cursor:pointer;}
+.task-main{flex:1;min-width:0;}
+.task-title{font-weight:600;font-size:0.92rem;}
+.task-row.done .task-title{text-decoration:line-through;}
+.task-meta{font-size:0.75rem;color:var(--ink-soft);margin-top:3px;display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
+.assignee-chip{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:1px 8px;font-weight:600;font-size:0.72rem;}
+.assignee-chip.unassigned{background:var(--grey-soft);color:var(--ink-soft);}
+.task-actions{flex:0 0 auto;}
+.icon-btn{border:1px solid var(--border);background:#fff;border-radius:5px;padding:5px 8px;cursor:pointer;font-size:0.82rem;}
+.icon-btn:hover{background:var(--grey-soft);}
+.empty-note{color:var(--ink-soft);font-size:0.85rem;font-style:italic;padding:10px 0;}
+
+.task-edit-row{flex-wrap:wrap;gap:8px;align-items:center;}
+.task-edit-row .edit-title{flex:2;min-width:180px;padding:7px 9px;border:1px solid var(--border-strong);border-radius:5px;font-size:0.88rem;}
+.task-edit-row select, .task-edit-row input[type=date], .task-edit-row input[type=number]{padding:6px 8px;border:1px solid var(--border-strong);border-radius:5px;font-size:0.85rem;}
+.edit-kw-wrap{display:inline-flex;gap:4px;}
+.edit-kw-wrap .edit-kw-week{width:60px;}
+.edit-kw-wrap .edit-kw-year{width:75px;}
+
+/* ---------- KW overview ---------- */
+.week-row{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;}
+.week-head{
+  display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--grey-soft);
+  font-size:0.82rem;font-weight:700;cursor:pointer;
+}
+.week-row.current .week-head{background:var(--accent-soft);color:var(--accent);}
+.week-row.movedeadline .week-head{background:var(--warn-soft);color:var(--warn);}
+.week-head .range{color:var(--ink-soft);font-weight:400;font-size:0.76rem;}
+.week-body{padding:10px 12px;}
+.week-tasks{display:flex;flex-direction:column;gap:5px;margin-bottom:8px;}
+.week-task{display:flex;align-items:center;gap:8px;font-size:0.83rem;padding:4px 0;}
+.week-task input[type=checkbox]{accent-color:var(--accent);cursor:pointer;}
+.week-task.done{opacity:0.5;text-decoration:line-through;}
+.week-add-toggle{font-size:0.78rem;color:var(--accent);cursor:pointer;background:none;border:none;padding:0;font-weight:600;}
+.week-inline-form{display:none;gap:8px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);align-items:flex-end;}
+.week-inline-form.open{display:flex;}
+.week-inline-form input, .week-inline-form select{padding:6px 8px;border:1px solid var(--border-strong);border-radius:5px;font-size:0.8rem;}
+.week-inline-form input[type=text]{flex:1;min-width:160px;}
+
+/* ---------- Grundriss tab ---------- */
+.plan-toolbar{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.plan-area{
+  position:relative;width:100%;height:440px;background:#fbfbfa;
+  border:1px solid var(--border-strong);border-radius:8px;overflow:hidden;margin-bottom:16px;
+}
+.room-box{
+  position:absolute;border:2px solid; border-radius:5px;
+  display:flex;flex-direction:column;justify-content:flex-end;padding:6px;cursor:move;user-select:none;
+}
+.room-box .room-label{
+  font-weight:700;font-size:0.78rem;background:rgba(255,255,255,0.9);padding:2px 6px;border-radius:3px;
+  display:inline-block;border:1px solid rgba(0,0,0,0.12);cursor:text;
+}
+.room-box .resize-handle{position:absolute;right:0;bottom:0;width:15px;height:15px;cursor:nwse-resize;background:var(--ink);clip-path:polygon(100% 0, 0 100%, 100% 100%);}
+.room-box .room-del{position:absolute;top:2px;right:2px;background:rgba(255,255,255,0.9);border:1px solid var(--border-strong);border-radius:3px;width:18px;height:18px;font-size:0.7rem;line-height:1;cursor:pointer;}
+.room-legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.room-chip{display:flex;align-items:center;gap:6px;font-size:0.78rem;border:1px solid var(--border);background:#fff;border-radius:12px;padding:3px 10px 3px 6px;}
+.room-chip .swatch{width:11px;height:11px;border-radius:50%;}
+
+.floor-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+.floor-tab{
+  display:flex;align-items:center;gap:6px;border:1px solid var(--border-strong);background:#fff;
+  border-radius:7px;padding:6px 6px 6px 12px;font-size:0.84rem;font-weight:600;color:var(--ink-soft);
+}
+.floor-tab.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+.floor-tab .floor-name{cursor:text;outline:none;}
+.floor-tab .floor-del{border:none;background:rgba(255,255,255,0.25);color:inherit;border-radius:4px;width:18px;height:18px;font-size:0.7rem;line-height:1;cursor:pointer;}
+.floor-tab:not(.active) .floor-del{background:var(--grey-soft);}
+.floor-add-btn{border:1px dashed var(--border-strong);background:none;border-radius:7px;padding:6px 12px;font-size:0.84rem;color:var(--ink-soft);cursor:pointer;}
+
+.box-table{width:100%;border-collapse:collapse;margin-top:6px;}
+.box-table th{text-align:left;font-size:0.7rem;text-transform:uppercase;color:var(--ink-soft);border-bottom:1px solid var(--border-strong);padding:6px 8px;}
+.box-table td{padding:7px 8px;border-bottom:1px solid var(--border);font-size:0.85rem;}
+.box-table select, .box-table input{padding:5px 6px;border:1px solid var(--border-strong);border-radius:4px;font-size:0.82rem;}
+.box-table input[type=text]{width:100%;}
+
+/* ---------- Print ---------- */
+.print-labels{display:none;}
+@media print{
+  body{background:#fff;}
+  .wrap > *:not(.print-labels){display:none !important;}
+  .print-labels{display:block !important;}
+  .label{width:100%;border:3px dashed #000;padding:24px;margin-bottom:14px;break-inside:avoid;text-align:center;}
+  .label .room{font-size:2.3rem;font-weight:800;text-transform:uppercase;}
+  .label .num{font-family:'JetBrains Mono',monospace;font-size:1.2rem;margin-top:6px;}
+  .label .content{font-size:1rem;margin-top:8px;color:#333;}
+  .label .fragile{color:#b5504a;font-weight:800;margin-top:10px;font-size:1.1rem;text-transform:uppercase;}
+}
+
+footer.note{margin-top:26px;font-size:0.76rem;color:var(--ink-soft);border-top:1px solid var(--border);padding-top:12px;}
+
+@media (max-width:640px){
+  .task-row{flex-wrap:wrap;}
+  form.add-form input[type=text]{min-width:100%;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div>
+      <h1>Umzugsplaner</h1>
+    </div>
+    <div class="movebox">
+      <label for="moveDateInput">Abgabe- / Umzugstermin</label>
+      <input type="date" id="moveDateInput">
+      <div class="countdown" id="countdownText"></div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="checkliste" class="active">Checkliste</button>
+    <button data-tab="wochen">KW-Übersicht</button>
+    <button data-tab="grundriss">Grundriss &amp; Kisten</button>
+  </nav>
+
+  <!-- ============ CHECKLISTE ============ -->
+  <section class="panel active" id="panel-checkliste">
+    <div class="card">
+      <h2 class="section-title">Fortschritt</h2>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-label" id="progressLabel">0 / 0 erledigt</div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Personen</h2>
+      <p class="section-desc">Wer im Haushalt ist an Aufgaben beteiligt? Diese Liste erscheint als Auswahl bei jeder Aufgabe.</p>
+      <div class="people-row" id="peopleRow"></div>
+      <form class="add-person-form" id="addPersonForm">
+        <input type="text" id="newPersonName" placeholder="Name">
+        <button type="submit" class="btn small">+ Hinzufügen</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Aufgabe hinzufügen</h2>
+      <form class="add-form" id="addTaskForm">
+        <div class="field" style="flex:2;">
+          <label>Aufgabe</label>
+          <input type="text" id="newTitle" placeholder="z.B. Transporter reservieren" required>
+        </div>
+        <div class="field">
+          <label>Zugewiesen an</label>
+          <select id="newAssignee"><option value="">— niemand —</option></select>
+        </div>
+        <div class="field">
+          <label>Terminart</label>
+          <div class="datetype-toggle" id="dateTypeToggle">
+            <button type="button" data-type="date" class="active">Datum</button>
+            <button type="button" data-type="kw">KW</button>
+          </div>
+        </div>
+        <div class="field" id="dateFieldWrap">
+          <label>Datum</label>
+          <input type="date" id="newDate">
+        </div>
+        <div class="field" id="kwFieldWrap" style="display:none;">
+          <label>KW / Jahr</label>
+          <div style="display:flex;gap:4px;">
+            <input type="number" id="newKwWeek" placeholder="KW" min="1" max="53" style="width:65px;">
+            <input type="number" id="newKwYear" placeholder="Jahr" style="width:85px;">
+          </div>
+        </div>
+        <button type="submit" class="btn">+ Hinzufügen</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <select id="filterStatus">
+          <option value="alle">Alle</option>
+          <option value="offen">Nur offene</option>
+          <option value="erledigt">Nur erledigte</option>
+        </select>
+        <select id="filterAssignee"><option value="alle">Alle Personen</option></select>
+      </div>
+      <div id="taskListContainer"></div>
+    </div>
+  </section>
+
+  <!-- ============ KW ÜBERSICHT ============ -->
+  <section class="panel" id="panel-wochen">
+    <div class="card">
+      <h2 class="section-title">Wochenübersicht</h2>
+      <p class="section-desc">Jede Kalenderwoche von heute bis zum Umzug (plus Puffer). Aufgaben lassen sich direkt in der passenden Woche anlegen.</p>
+      <div id="weekListContainer"></div>
+    </div>
+  </section>
+
+  <!-- ============ GRUNDRISS ============ -->
+  <section class="panel" id="panel-grundriss">
+    <div class="card">
+      <h2 class="section-title">Grundriss des neuen Hauses</h2>
+      <p class="section-desc">Räume anlegen, benennen, ziehen und per Eckgriff skalieren. Danach im Kisten-Manifest jede Kiste einem Raum zuweisen und Etiketten drucken.</p>
+      <div class="floor-tabs" id="floorTabs"></div>
+      <div class="plan-toolbar">
+        <button class="btn small" id="addRoomBtn">+ Raum hinzufügen</button>
+        <button class="btn ghost small" id="clearPlanBtn">Stock leeren</button>
+      </div>
+      <div class="plan-area" id="planArea"></div>
+      <div class="room-legend" id="roomLegend"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Kisten-Manifest</h2>
+      <p class="section-desc">Jede Kiste bekommt eine Nummer, einen Zielraum und optional einen Inhalt-Hinweis.</p>
+      <button class="btn small" id="addBoxBtn" style="margin-bottom:12px;">+ Kiste hinzufügen</button>
+      <table class="box-table">
+        <thead><tr><th>Nr.</th><th>Zielraum</th><th>Inhalt</th><th>Zerbrechlich</th><th></th></tr></thead>
+        <tbody id="boxTableBody"></tbody>
+      </table>
+      <div style="margin-top:16px;"><button class="btn ghost" id="printLabelsBtn">Etiketten drucken</button></div>
+      <div class="print-labels" id="printLabels"></div>
+    </div>
+  </section>
+
+  <footer class="note">
+    Daten liegen lokal im Browser (localStorage), strukturiert als einzelne JSON-Objekte pro Bereich (Aufgaben, Räume, Kisten, Personen, Termin) — siehe <span class="mono">DataStore</span> im Quelltext. Das ist bewusst so aufgebaut, dass sich die Speicherung später 1:1 durch Aufrufe an eine REST-Schnittstelle ersetzen lässt, ohne den Rest der App anzufassen.
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =================================================================
+   DATA STORE — thin persistence abstraction.
+   Each collection is stored as ONE clean JSON document.
+   Swap the body of load()/save() for fetch() calls to a REST API
+   later (e.g. GET/PUT /api/umzug/<collection>) without touching
+   any of the rendering code below.
+================================================================= */
+const STORAGE_PREFIX = 'umzugsplaner:';
+const DataStore = {
+  async load(collection, fallback){
+    try{
+      const raw = localStorage.getItem(STORAGE_PREFIX + collection);
+      return raw ? JSON.parse(raw) : fallback;
+      // REST equivalent:
+      // const res = await fetch(`/api/umzug/${collection}`); return res.ok ? await res.json() : fallback;
+    }catch(e){ return fallback; }
+  },
+  async save(collection, data){
+    try{
+      localStorage.setItem(STORAGE_PREFIX + collection, JSON.stringify(data));
+      return true;
+      // REST equivalent:
+      // await fetch(`/api/umzug/${collection}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+    }catch(e){ return false; }
+  },
+  async exportAll(collections){
+    const out = {};
+    for(const c of Object.keys(collections)) out[c] = collections[c];
+    return out;
+  }
+};
+
+let uidCounter = 1;
+function uid(prefix){ return prefix + '_' + Date.now().toString(36) + '_' + (uidCounter++); }
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------------------------------------------------------------
+   ISO WEEK HELPERS
+---------------------------------------------------------------- */
+function isoWeekYear(date){
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+  return { week: weekNo, year: d.getUTCFullYear() };
+}
+function mondayOfISOWeek(week, year){
+  const simple = new Date(Date.UTC(year, 0, 1 + (week-1)*7));
+  const dow = simple.getUTCDay();
+  const diff = (dow <= 4 ? 1 - dow : 8 - dow);
+  const result = new Date(simple);
+  result.setUTCDate(simple.getUTCDate() + diff);
+  return result;
+}
+function addDays(d, n){ const r = new Date(d); r.setUTCDate(r.getUTCDate()+n); return r; }
+function parseDateInput(str){
+  if(!str) return null;
+  const [y,m,day] = str.split('-').map(Number);
+  return new Date(Date.UTC(y, m-1, day));
+}
+function mondayOfDate(d){
+  const wy = isoWeekYear(d);
+  return mondayOfISOWeek(wy.week, wy.year);
+}
+function effectiveDate(task){
+  if(task.dateType === 'date' && task.date) return parseDateInput(task.date);
+  if(task.dateType === 'kw' && task.kwWeek && task.kwYear) return mondayOfISOWeek(task.kwWeek, task.kwYear);
+  return null;
+}
+function daysUntil(date){
+  if(!date) return null;
+  const today = new Date();
+  const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  return Math.round((date - todayUTC) / 86400000);
+}
+function fmtRange(monday){
+  const sunday = addDays(monday,6);
+  const f = d => d.getUTCDate().toString().padStart(2,'0') + '.' + (d.getUTCMonth()+1).toString().padStart(2,'0') + '.';
+  return f(monday) + '–' + f(sunday);
+}
+
+/* ---------------------------------------------------------------
+   SEED DATA
+---------------------------------------------------------------- */
+const SEED_TASKS = [
+  ['Umzugsfahrzeug / Transporter reservieren',-6],
+  ['Mietvertrag alte Wohnung kündigen / Fristen prüfen',-10],
+  ['Neuen Mietvertrag / Kaufvertrag prüfen & unterschreiben',-8],
+  ['Umzugsurlaub / Termin mit Arbeitgeber klären',-6],
+  ['Handwerker für Renovation organisieren',-6],
+  ['Kinder: Schule / Kita ummelden',-5],
+  ['Internetanbieter kündigen & am neuen Ort anmelden',-5],
+  ['Reinigungsfirma für Endreinigung anfragen & buchen',-4],
+  ['Halteverbotszone für Umzugsfahrzeug beantragen',-4],
+  ['Entrümpeln & Aussortieren',-4],
+  ['Umzugskartons & Packmaterial besorgen',-3],
+  ['Sperrmüll / Entsorgung anmelden',-3],
+  ['Möbel für neue Räume ausmessen',-3],
+  ['Nicht-alltägliche Gegenstände einpacken',-2],
+  ['Adressänderung vorbereiten (Bank, Versicherung, Abos)',-2],
+  ['Termin Endreinigung mit Reinigungsfirma bestätigen',-1],
+  ['Post-Nachsendeauftrag einrichten',-1],
+  ['Kühl-/Gefrierschrank abtauen planen',-1],
+  ['Transporter & Helfer bestätigen',-1],
+  ['Wertsachen & wichtige Dokumente separat packen',-1],
+  ['Zählerstände ablesen (Strom, Wasser, Gas)',0],
+  ['Wohnungsübergabeprotokoll alte Wohnung',0],
+  ['Schlüsselübergabe',0],
+  ['Erstversorgungskiste pro Zimmer auspacken',0],
+  ['Ummeldung Einwohnerkontrolle / Meldeamt',1],
+  ['Adressänderung final durchführen',1],
+  ['Kaution alte Wohnung zurückfordern',2],
+];
+
+function buildSeedTasks(moveDateStr){
+  return SEED_TASKS.map(([title, offset]) => {
+    const task = { id: uid('task'), title, done:false, assignee:'',
+      offsetWeeks: offset, dateType:'kw', kwWeek:null, kwYear:null, date:null };
+    applyOffset(task, moveDateStr);
+    return task;
+  });
+}
+function applyOffset(task, moveDateStr){
+  if(task.offsetWeeks == null || !moveDateStr) return;
+  const base = parseDateInput(moveDateStr);
+  if(!base) return;
+  const d = addDays(base, task.offsetWeeks*7);
+  const {week, year} = isoWeekYear(d);
+  task.kwWeek = week; task.kwYear = year; task.dateType = 'kw';
+}
+
+const DEFAULT_MOVE_DATE = '2026-10-31';
+
+/* ---------------------------------------------------------------
+   STATE + INIT (async via DataStore)
+---------------------------------------------------------------- */
+let state = { moveDate:null, tasks:[], rooms:[], boxes:[], people:[], floors:[] };
+let activeFloorId = null;
+
+async function initState(){
+  state.moveDate = await DataStore.load('settings', {moveDate:DEFAULT_MOVE_DATE});
+  if(typeof state.moveDate === 'object') state.moveDate = state.moveDate.moveDate || DEFAULT_MOVE_DATE;
+  state.tasks = await DataStore.load('tasks', null);
+  state.rooms = await DataStore.load('rooms', []);
+  state.boxes = await DataStore.load('boxes', []);
+  state.people = await DataStore.load('people', []);
+  state.floors = await DataStore.load('floors', null);
+  if(!state.floors || !state.floors.length){
+    state.floors = ['Untergeschoss','Erdgeschoss','1. Stock','2. Stock'].map(name => ({id: uid('floor'), name}));
+    await persistFloors();
+  }
+  // migrate rooms created before floors existed
+  let migrated = false;
+  state.rooms.forEach(r => { if(!r.floorId){ r.floorId = state.floors[0].id; migrated = true; } });
+  if(migrated) await persistRooms();
+  activeFloorId = state.floors[0].id;
+  if(!state.tasks){ state.tasks = buildSeedTasks(state.moveDate); await persistTasks(); }
+}
+async function persistTasks(){ await DataStore.save('tasks', state.tasks); }
+async function persistRooms(){ await DataStore.save('rooms', state.rooms); }
+async function persistBoxes(){ await DataStore.save('boxes', state.boxes); }
+async function persistPeople(){ await DataStore.save('people', state.people); }
+async function persistSettings(){ await DataStore.save('settings', {moveDate: state.moveDate}); }
+async function persistFloors(){ await DataStore.save('floors', state.floors); }
+
+/* ---------------------------------------------------------------
+   TABS
+---------------------------------------------------------------- */
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('section.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab === 'grundriss') renderGrundriss();
+    if(btn.dataset.tab === 'wochen') renderWeekOverview();
+  });
+});
+
+/* ---------------------------------------------------------------
+   MOVE DATE
+---------------------------------------------------------------- */
+const moveDateInput = document.getElementById('moveDateInput');
+moveDateInput.addEventListener('change', async () => {
+  state.moveDate = moveDateInput.value || null;
+  await persistSettings();
+  renderCountdown();
+});
+function renderCountdown(){
+  moveDateInput.value = state.moveDate || '';
+  const el = document.getElementById('countdownText');
+  if(!state.moveDate){ el.textContent = ''; return; }
+  const d = daysUntil(parseDateInput(state.moveDate));
+  if(d === null) el.textContent = '';
+  else if(d > 0) el.textContent = `noch ${d} Tag${d===1?'':'e'}`;
+  else if(d === 0) el.textContent = 'Heute ist der Termin';
+  else el.textContent = `${Math.abs(d)} Tag${Math.abs(d)===1?'':'e'} seit dem Termin`;
+}
+
+/* ---------------------------------------------------------------
+   PEOPLE
+---------------------------------------------------------------- */
+function renderPeople(){
+  const row = document.getElementById('peopleRow');
+  row.innerHTML = state.people.length ? state.people.map(p =>
+    `<span class="person-chip">${escapeHtml(p)}<button data-name="${escapeHtml(p)}" title="Entfernen">×</button></span>`
+  ).join('') : '<span class="empty-note">Noch niemand erfasst.</span>';
+  row.querySelectorAll('button').forEach(b => b.addEventListener('click', async () => {
+    state.people = state.people.filter(p => p !== b.dataset.name);
+    await persistPeople();
+    renderPeople(); refreshAssigneeSelects(); renderTasks();
+  }));
+  refreshAssigneeSelects();
+}
+function refreshAssigneeSelects(){
+  const opts = '<option value="">— niemand —</option>' + state.people.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  document.getElementById('newAssignee').innerHTML = opts;
+  document.getElementById('filterAssignee').innerHTML = '<option value="alle">Alle Personen</option>' + state.people.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+}
+document.getElementById('addPersonForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('newPersonName');
+  const name = input.value.trim();
+  if(!name || state.people.includes(name)) return;
+  state.people.push(name);
+  await persistPeople();
+  input.value = '';
+  renderPeople(); renderTasks();
+});
+
+/* ---------------------------------------------------------------
+   ADD TASK FORM
+---------------------------------------------------------------- */
+let newTaskDateType = 'date';
+document.getElementById('dateTypeToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  newTaskDateType = btn.dataset.type;
+  document.querySelectorAll('#dateTypeToggle button').forEach(b=>b.classList.toggle('active', b===btn));
+  document.getElementById('dateFieldWrap').style.display = newTaskDateType==='date' ? '' : 'none';
+  document.getElementById('kwFieldWrap').style.display = newTaskDateType==='kw' ? '' : 'none';
+});
+
+document.getElementById('addTaskForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = document.getElementById('newTitle').value.trim();
+  if(!title) return;
+  const task = {
+    id: uid('task'), title,
+    assignee: document.getElementById('newAssignee').value,
+    done:false, offsetWeeks:null, dateType:newTaskDateType,
+    date:null, kwWeek:null, kwYear:null
+  };
+  if(newTaskDateType === 'date'){
+    task.date = document.getElementById('newDate').value || null;
+  } else {
+    task.kwWeek = parseInt(document.getElementById('newKwWeek').value,10) || null;
+    task.kwYear = parseInt(document.getElementById('newKwYear').value,10) || new Date().getFullYear();
+  }
+  state.tasks.push(task);
+  await persistTasks();
+  e.target.reset();
+  document.getElementById('dateFieldWrap').style.display='';
+  document.getElementById('kwFieldWrap').style.display='none';
+  document.querySelectorAll('#dateTypeToggle button').forEach(b=>b.classList.toggle('active', b.dataset.type==='date'));
+  newTaskDateType='date';
+  renderTasks();
+});
+
+/* ---------------------------------------------------------------
+   RENDER TASKS (Checkliste tab)
+---------------------------------------------------------------- */
+document.getElementById('filterStatus').addEventListener('change', renderTasks);
+document.getElementById('filterAssignee').addEventListener('change', renderTasks);
+
+function taskDateLabel(task){
+  if(task.dateType === 'date' && task.date){
+    return parseDateInput(task.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric', timeZone:'UTC'});
+  }
+  if(task.dateType === 'kw' && task.kwWeek) return `KW ${String(task.kwWeek).padStart(2,'0')}` + (task.kwYear ? `/${task.kwYear}`:'');
+  return 'kein Termin';
+}
+
+function assigneeChip(task){
+  if(task.assignee) return `<span class="assignee-chip">${escapeHtml(task.assignee)}</span>`;
+  return `<span class="assignee-chip unassigned">nicht zugewiesen</span>`;
+}
+
+let editingTaskId = null;
+
+function taskEditRowHtml(t){
+  const isDate = t.dateType === 'date';
+  return `<div class="task-row task-edit-row" data-id="${t.id}">
+    <input type="text" class="edit-title" value="${escapeHtml(t.title)}" placeholder="Aufgabe">
+    <select class="edit-assignee">
+      <option value="">— niemand —</option>
+      ${state.people.map(p=>`<option value="${escapeHtml(p)}" ${p===t.assignee?'selected':''}>${escapeHtml(p)}</option>`).join('')}
+    </select>
+    <div class="datetype-toggle edit-datetype">
+      <button type="button" data-type="date" class="${isDate?'active':''}">Datum</button>
+      <button type="button" data-type="kw" class="${!isDate?'active':''}">KW</button>
+    </div>
+    <input type="date" class="edit-date" value="${t.date||''}" style="${isDate?'':'display:none;'}">
+    <span class="edit-kw-wrap" style="${!isDate?'':'display:none;'}">
+      <input type="number" class="edit-kw-week" min="1" max="53" placeholder="KW" value="${t.kwWeek||''}">
+      <input type="number" class="edit-kw-year" placeholder="Jahr" value="${t.kwYear||''}">
+    </span>
+    <button class="btn small" data-action="save-edit">Speichern</button>
+    <button class="btn ghost small" data-action="cancel-edit">Abbrechen</button>
+  </div>`;
+}
+
+function renderTasks(){
+  const container = document.getElementById('taskListContainer');
+  const statusF = document.getElementById('filterStatus').value;
+  const assigneeF = document.getElementById('filterAssignee').value;
+
+  let tasks = state.tasks.filter(t => {
+    if(statusF==='offen' && t.done) return false;
+    if(statusF==='erledigt' && !t.done) return false;
+    if(assigneeF!=='alle' && (t.assignee||'')!==assigneeF) return false;
+    return true;
+  });
+
+  const total = state.tasks.length;
+  const doneCount = state.tasks.filter(t=>t.done).length;
+  document.getElementById('progressFill').style.width = total? (doneCount/total*100)+'%' : '0%';
+  document.getElementById('progressLabel').textContent = `${doneCount} / ${total} erledigt`;
+
+  if(tasks.length===0){ container.innerHTML = '<div class="empty-note">Keine Aufgaben in dieser Ansicht.</div>'; return; }
+
+  tasks.sort((a,b) => {
+    const da = effectiveDate(a), db = effectiveDate(b);
+    if(da && db) return da - db;
+    if(da) return -1;
+    if(db) return 1;
+    return 0;
+  });
+
+  let html = '';
+  tasks.forEach(t => {
+    if(t.id === editingTaskId){ html += taskEditRowHtml(t); return; }
+    const eff = effectiveDate(t);
+    const dLeft = eff ? daysUntil(eff) : null;
+    const overdue = (!t.done && dLeft !== null && dLeft < 0);
+    html += `<div class="task-row ${t.done?'done':''} ${overdue?'overdue':''}" data-id="${t.id}">
+      <input type="checkbox" data-action="toggle" ${t.done?'checked':''}>
+      <div class="task-main">
+        <div class="task-title">${escapeHtml(t.title)}</div>
+        <div class="task-meta">
+          <span class="mono">${taskDateLabel(t)}</span>
+          ${dLeft!==null && !t.done ? `<span>${dLeft>=0 ? 'in '+dLeft+' Tg.' : Math.abs(dLeft)+' Tg. überfällig'}</span>` : ''}
+          ${assigneeChip(t)}
+        </div>
+      </div>
+      <div class="task-actions">
+        <button class="icon-btn" data-action="edit" title="Bearbeiten">Bearbeiten</button>
+        <button class="icon-btn" data-action="delete" title="Löschen">Löschen</button>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+
+  container.querySelectorAll('.task-edit-row').forEach(row => {
+    const id = row.dataset.id;
+    const dtToggle = row.querySelector('.edit-datetype');
+    const dateInp = row.querySelector('.edit-date');
+    const kwWrap = row.querySelector('.edit-kw-wrap');
+    dtToggle.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      dtToggle.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
+      dateInp.style.display = btn.dataset.type==='date' ? '' : 'none';
+      kwWrap.style.display = btn.dataset.type==='kw' ? '' : 'none';
+    });
+    row.querySelector('[data-action="cancel-edit"]').addEventListener('click', () => {
+      editingTaskId = null;
+      renderTasks();
+    });
+    row.querySelector('[data-action="save-edit"]').addEventListener('click', async () => {
+      const t = state.tasks.find(x=>x.id===id);
+      const title = row.querySelector('.edit-title').value.trim();
+      if(!title){ alert('Titel darf nicht leer sein.'); return; }
+      t.title = title;
+      t.assignee = row.querySelector('.edit-assignee').value;
+      const dateType = dtToggle.querySelector('button.active').dataset.type;
+      t.dateType = dateType;
+      t.offsetWeeks = null;
+      if(dateType === 'date'){
+        t.date = dateInp.value || null;
+        t.kwWeek = null; t.kwYear = null;
+      } else {
+        t.kwWeek = parseInt(row.querySelector('.edit-kw-week').value,10) || null;
+        t.kwYear = parseInt(row.querySelector('.edit-kw-year').value,10) || new Date().getFullYear();
+        t.date = null;
+      }
+      await persistTasks();
+      editingTaskId = null;
+      renderTasks();
+    });
+  });
+
+  container.querySelectorAll('.task-row:not(.task-edit-row)').forEach(row => {
+    const id = row.dataset.id;
+    row.querySelector('[data-action="toggle"]').addEventListener('change', async () => {
+      const t = state.tasks.find(x=>x.id===id);
+      t.done = !t.done;
+      await persistTasks();
+      renderTasks();
+    });
+    row.querySelector('[data-action="edit"]').addEventListener('click', () => {
+      editingTaskId = id;
+      renderTasks();
+    });
+    row.querySelector('[data-action="delete"]').addEventListener('click', async () => {
+      state.tasks = state.tasks.filter(x=>x.id!==id);
+      await persistTasks();
+      renderTasks();
+    });
+  });
+}
+
+/* ---------------------------------------------------------------
+   KW ÜBERSICHT
+---------------------------------------------------------------- */
+function renderWeekOverview(){
+  const container = document.getElementById('weekListContainer');
+  const todayMonday = mondayOfDate(new Date());
+  let rangeStart = todayMonday;
+  let rangeEnd = state.moveDate ? addDays(mondayOfDate(parseDateInput(state.moveDate)), 14) : addDays(todayMonday, 12*7);
+
+  // extend range to include any out-of-range kw tasks
+  state.tasks.forEach(t => {
+    if(t.dateType==='kw' && t.kwWeek && t.kwYear){
+      const m = mondayOfISOWeek(t.kwWeek, t.kwYear);
+      if(m < rangeStart) rangeStart = m;
+      if(m > rangeEnd) rangeEnd = m;
+    }
+  });
+
+  const weeks = [];
+  let cursor = new Date(rangeStart);
+  while(cursor <= rangeEnd){
+    weeks.push(isoWeekYear(cursor));
+    cursor = addDays(cursor, 7);
+  }
+
+  const moveWy = state.moveDate ? isoWeekYear(parseDateInput(state.moveDate)) : null;
+  const todayWy = isoWeekYear(new Date());
+
+  container.innerHTML = weeks.map((wy, idx) => {
+    const monday = mondayOfISOWeek(wy.week, wy.year);
+    const isCurrent = wy.week===todayWy.week && wy.year===todayWy.year;
+    const isMoveWeek = moveWy && wy.week===moveWy.week && wy.year===moveWy.year;
+    const weekTasks = state.tasks.filter(t => {
+      const eff = effectiveDate(t);
+      if(!eff) return false;
+      const taskMonday = mondayOfDate(eff);
+      return taskMonday.getTime() === monday.getTime();
+    });
+    const tasksHtml = weekTasks.length ? weekTasks.map(t => `
+      <label class="week-task ${t.done?'done':''}">
+        <input type="checkbox" data-taskid="${t.id}" ${t.done?'checked':''}>
+        <span>${escapeHtml(t.title)}</span>
+        ${assigneeChip(t)}
+      </label>`).join('') : '<div class="empty-note">Keine Aufgaben in dieser Woche.</div>';
+    return `<div class="week-row ${isCurrent?'current':''} ${isMoveWeek?'movedeadline':''}" data-week="${wy.week}" data-year="${wy.year}">
+      <div class="week-head" data-action="toggle-body">
+        <span>KW ${String(wy.week).padStart(2,'0')} · ${wy.year} ${isMoveWeek?'— Termin':''} ${isCurrent?'— diese Woche':''}</span>
+        <span class="range mono">${fmtRange(monday)}</span>
+      </div>
+      <div class="week-body" style="display:block;">
+        <div class="week-tasks">${tasksHtml}</div>
+        <button type="button" class="week-add-toggle" data-action="add-toggle">+ Aufgabe in dieser Woche</button>
+        <div class="week-inline-form" data-role="inline-form">
+          <input type="text" placeholder="Aufgabe" data-role="title">
+          <select data-role="assignee"><option value="">— niemand —</option>${state.people.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('')}</select>
+          <button type="button" class="btn small" data-action="add-submit">Hinzufügen</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  container.querySelectorAll('.week-row').forEach(row => {
+    const week = parseInt(row.dataset.week,10), year = parseInt(row.dataset.year,10);
+    row.querySelector('[data-action="toggle-body"]').addEventListener('click', () => {
+      const body = row.querySelector('.week-body');
+      body.style.display = body.style.display==='none' ? 'block' : 'none';
+    });
+    row.querySelectorAll('[data-taskid]').forEach(cb => {
+      cb.addEventListener('change', async () => {
+        const t = state.tasks.find(x=>x.id===cb.dataset.taskid);
+        t.done = cb.checked;
+        await persistTasks();
+        renderWeekOverview();
+      });
+    });
+    const addToggle = row.querySelector('[data-action="add-toggle"]');
+    const inlineForm = row.querySelector('[data-role="inline-form"]');
+    addToggle.addEventListener('click', () => inlineForm.classList.toggle('open'));
+    row.querySelector('[data-action="add-submit"]').addEventListener('click', async () => {
+      const titleInp = inlineForm.querySelector('[data-role="title"]');
+      const title = titleInp.value.trim();
+      if(!title) return;
+      state.tasks.push({
+        id: uid('task'), title,
+        assignee: inlineForm.querySelector('[data-role="assignee"]').value,
+        done:false, offsetWeeks:null, dateType:'kw', kwWeek:week, kwYear:year, date:null
+      });
+      await persistTasks();
+      renderWeekOverview();
+    });
+  });
+}
+
+/* ---------------------------------------------------------------
+   GRUNDRISS (FLOOR PLAN)
+---------------------------------------------------------------- */
+const ROOM_COLORS = ['#A98F65','#5C7A76','#B5504A','#B8863E','#7C8791','#6F8C5A','#8B6E86','#4E7FA0'];
+
+document.getElementById('addRoomBtn').addEventListener('click', async () => {
+  const roomsOnFloor = state.rooms.filter(r => r.floorId === activeFloorId);
+  const color = ROOM_COLORS[roomsOnFloor.length % ROOM_COLORS.length];
+  state.rooms.push({ id: uid('room'), floorId: activeFloorId, name:'Neuer Raum', x:8+(roomsOnFloor.length*6)%60, y:8+(roomsOnFloor.length*10)%60, w:26, h:22, color });
+  await persistRooms();
+  renderGrundriss();
+});
+document.getElementById('clearPlanBtn').addEventListener('click', async () => {
+  if(!confirm('Alle Räume auf diesem Stock löschen?')) return;
+  state.rooms = state.rooms.filter(r => r.floorId !== activeFloorId);
+  await persistRooms();
+  renderGrundriss();
+});
+document.getElementById('floorTabs').addEventListener('click', async (e) => {
+  const addBtn = e.target.closest('[data-action="add-floor"]');
+  if(addBtn){
+    const floor = { id: uid('floor'), name: 'Stock ' + (state.floors.length + 1) };
+    state.floors.push(floor);
+    await persistFloors();
+    activeFloorId = floor.id;
+    renderFloorTabs(); renderGrundriss();
+    return;
+  }
+  const delBtn = e.target.closest('[data-action="del-floor"]');
+  if(delBtn){
+    e.stopPropagation();
+    if(state.floors.length <= 1){ alert('Mindestens ein Stock muss bestehen bleiben.'); return; }
+    const floorId = delBtn.closest('.floor-tab').dataset.id;
+    if(!confirm('Diesen Stock inkl. aller Räume löschen? Zugewiesene Kisten werden dadurch ohne Raum.')) return;
+    state.floors = state.floors.filter(f => f.id !== floorId);
+    state.rooms = state.rooms.filter(r => r.floorId !== floorId);
+    await Promise.all([persistFloors(), persistRooms()]);
+    if(activeFloorId === floorId) activeFloorId = state.floors[0].id;
+    renderFloorTabs(); renderGrundriss();
+    return;
+  }
+  const tab = e.target.closest('.floor-tab');
+  if(tab && !e.target.classList.contains('floor-name')){
+    activeFloorId = tab.dataset.id;
+    renderFloorTabs(); renderGrundriss();
+  }
+});
+
+function renderFloorTabs(){
+  const container = document.getElementById('floorTabs');
+  container.innerHTML = state.floors.map(f => `
+    <div class="floor-tab ${f.id===activeFloorId?'active':''}" data-id="${f.id}">
+      <span class="floor-name" contenteditable="true" spellcheck="false">${escapeHtml(f.name)}</span>
+      <button type="button" class="floor-del" data-action="del-floor" title="Stock löschen">×</button>
+    </div>`).join('') + `<button type="button" class="floor-add-btn" data-action="add-floor">+ Stock</button>`;
+
+  container.querySelectorAll('.floor-name').forEach(nameEl => {
+    nameEl.addEventListener('click', () => { activeFloorId = nameEl.closest('.floor-tab').dataset.id; renderFloorTabs(); renderGrundriss(); });
+    nameEl.addEventListener('pointerdown', ev => ev.stopPropagation());
+    nameEl.addEventListener('blur', async () => {
+      const floor = state.floors.find(f => f.id === nameEl.closest('.floor-tab').dataset.id);
+      floor.name = nameEl.textContent.trim() || floor.name;
+      await persistFloors();
+    });
+    nameEl.addEventListener('keydown', ev => { if(ev.key==='Enter'){ ev.preventDefault(); nameEl.blur(); } });
+  });
+}
+
+function renderGrundriss(){
+  renderFloorTabs();
+  const area = document.getElementById('planArea');
+  area.innerHTML = '';
+  const roomsOnFloor = state.rooms.filter(r => r.floorId === activeFloorId);
+  roomsOnFloor.forEach(room => {
+    const el = document.createElement('div');
+    el.className = 'room-box';
+    el.style.left = room.x + '%'; el.style.top = room.y + '%';
+    el.style.width = room.w + '%'; el.style.height = room.h + '%';
+    el.style.background = room.color + '33';
+    el.style.borderColor = room.color;
+    el.dataset.id = room.id;
+    el.innerHTML = `
+      <span class="room-label" contenteditable="true" spellcheck="false">${escapeHtml(room.name)}</span>
+      <button class="room-del" title="Raum löschen">×</button>
+      <div class="resize-handle"></div>`;
+    area.appendChild(el);
+
+    const label = el.querySelector('.room-label');
+    label.addEventListener('blur', async () => {
+      room.name = label.textContent.trim() || 'Raum';
+      await persistRooms(); renderRoomLegend(); renderBoxTable();
+    });
+    label.addEventListener('keydown', ev => { if(ev.key==='Enter'){ ev.preventDefault(); label.blur(); } });
+    label.addEventListener('pointerdown', ev => ev.stopPropagation());
+
+    el.querySelector('.room-del').addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      state.rooms = state.rooms.filter(r=>r.id!==room.id);
+      await persistRooms();
+      renderGrundriss();
+    });
+
+    el.addEventListener('pointerdown', (ev) => {
+      if(ev.target.classList.contains('resize-handle') || ev.target.classList.contains('room-del') || ev.target.classList.contains('room-label')) return;
+      const areaRect = area.getBoundingClientRect();
+      const startX = ev.clientX, startY = ev.clientY;
+      const startXPct = room.x, startYPct = room.y;
+      el.setPointerCapture(ev.pointerId);
+      function onMove(mv){
+        const dxPct = (mv.clientX - startX) / areaRect.width * 100;
+        const dyPct = (mv.clientY - startY) / areaRect.height * 100;
+        room.x = Math.max(0, Math.min(100-room.w, startXPct + dxPct));
+        room.y = Math.max(0, Math.min(100-room.h, startYPct + dyPct));
+        el.style.left = room.x + '%'; el.style.top = room.y + '%';
+      }
+      function onUp(){ el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp); persistRooms(); }
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+    });
+
+    el.querySelector('.resize-handle').addEventListener('pointerdown', (ev) => {
+      ev.stopPropagation();
+      const areaRect = area.getBoundingClientRect();
+      const startX = ev.clientX, startY = ev.clientY;
+      const startW = room.w, startH = room.h;
+      el.setPointerCapture(ev.pointerId);
+      function onMove(mv){
+        const dwPct = (mv.clientX - startX) / areaRect.width * 100;
+        const dhPct = (mv.clientY - startY) / areaRect.height * 100;
+        room.w = Math.max(8, Math.min(100-room.x, startW + dwPct));
+        room.h = Math.max(8, Math.min(100-room.y, startH + dhPct));
+        el.style.width = room.w + '%'; el.style.height = room.h + '%';
+      }
+      function onUp(){ el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp); persistRooms(); }
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+    });
+  });
+  renderRoomLegend();
+  renderBoxTable();
+}
+function renderRoomLegend(){
+  const legend = document.getElementById('roomLegend');
+  const roomsOnFloor = state.rooms.filter(r => r.floorId === activeFloorId);
+  legend.innerHTML = roomsOnFloor.length ? roomsOnFloor.map(r => `<span class="room-chip"><span class="swatch" style="background:${r.color}"></span>${escapeHtml(r.name)}</span>`).join('') : '<span class="empty-note">Noch keine Räume auf diesem Stock.</span>';
+}
+
+document.getElementById('addBoxBtn').addEventListener('click', async () => {
+  const nextNum = (state.boxes.reduce((m,b)=>Math.max(m,b.number||0),0)) + 1;
+  state.boxes.push({ id: uid('box'), number:nextNum, roomId: state.rooms[0] ? state.rooms[0].id : '', content:'', fragile:false });
+  await persistBoxes();
+  renderBoxTable();
+});
+
+function roomOptionsHtml(selectedId){
+  return '<option value="">— kein Raum —</option>' + state.floors.map(f => {
+    const rooms = state.rooms.filter(r => r.floorId === f.id);
+    if(!rooms.length) return '';
+    return `<optgroup label="${escapeHtml(f.name)}">` + rooms.map(r => `<option value="${r.id}" ${r.id===selectedId?'selected':''}>${escapeHtml(r.name)}</option>`).join('') + `</optgroup>`;
+  }).join('');
+}
+
+function renderBoxTable(){
+  const tbody = document.getElementById('boxTableBody');
+  if(!state.boxes.length){ tbody.innerHTML = '<tr><td colspan="5" class="empty-note">Noch keine Kisten erfasst.</td></tr>'; return; }
+  tbody.innerHTML = state.boxes.map(b => `
+    <tr data-id="${b.id}">
+      <td><input type="number" min="1" value="${b.number}" data-field="number" style="width:64px;"></td>
+      <td><select data-field="roomId">${roomOptionsHtml(b.roomId)}</select></td>
+      <td><input type="text" data-field="content" value="${escapeHtml(b.content)}" placeholder="z.B. Bücher, Geschirr…"></td>
+      <td style="text-align:center;"><input type="checkbox" data-field="fragile" ${b.fragile?'checked':''}></td>
+      <td><button class="icon-btn" data-action="delbox">Löschen</button></td>
+    </tr>`).join('');
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    const id = row.dataset.id;
+    const box = state.boxes.find(b=>b.id===id);
+    row.querySelectorAll('[data-field]').forEach(inp => {
+      const field = inp.dataset.field;
+      const evt = (inp.type === 'checkbox' || inp.tagName==='SELECT') ? 'change' : 'input';
+      inp.addEventListener(evt, async () => {
+        if(field==='fragile') box.fragile = inp.checked;
+        else if(field==='number') box.number = parseInt(inp.value,10) || box.number;
+        else box[field] = inp.value;
+        await persistBoxes();
+      });
+    });
+    row.querySelector('[data-action="delbox"]').addEventListener('click', async () => {
+      state.boxes = state.boxes.filter(b=>b.id!==id);
+      await persistBoxes();
+      renderBoxTable();
+    });
+  });
+}
+
+document.getElementById('printLabelsBtn').addEventListener('click', () => {
+  const roomsById = {}; state.rooms.forEach(r => roomsById[r.id]=r);
+  const floorsById = {}; state.floors.forEach(f => floorsById[f.id]=f);
+  const container = document.getElementById('printLabels');
+  if(!state.boxes.length){ alert('Keine Kisten vorhanden.'); return; }
+  container.innerHTML = state.boxes.map(b => {
+    const room = roomsById[b.roomId];
+    const floor = room ? floorsById[room.floorId] : null;
+    return `<div class="label" style="border-color:${room?room.color:'#000'}">
+      <div class="room">${room ? escapeHtml(room.name) : '— kein Raum —'}</div>
+      ${floor ? `<div class="content">${escapeHtml(floor.name)}</div>` : ''}
+      <div class="num">Kiste Nr. ${b.number}</div>
+      ${b.content ? `<div class="content">${escapeHtml(b.content)}</div>` : ''}
+      ${b.fragile ? `<div class="fragile">Zerbrechlich</div>` : ''}
+    </div>`;
+  }).join('');
+  window.print();
+});
+
+/* ---------------------------------------------------------------
+   INIT
+---------------------------------------------------------------- */
+function renderAll(){
+  renderCountdown();
+  renderPeople();
+  renderTasks();
+  renderGrundriss();
+  if(document.getElementById('panel-wochen').classList.contains('active')) renderWeekOverview();
+}
+
+initState().then(() => {
+  renderAll();
+  setInterval(renderCountdown, 60*60*1000);
+});
+
+})();
+</script>
+</body>
+</html>
