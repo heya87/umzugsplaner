@@ -13,7 +13,7 @@ INDEX_HTML = Path(os.environ["INDEX_HTML_PATH"]) if "INDEX_HTML_PATH" in os.envi
     (p for p in _index_candidates if p.exists()), _index_candidates[0]
 )
 
-VALID_COLLECTIONS = {"tasks", "rooms", "boxes", "people", "floors", "settings", "furniture"}
+VALID_COLLECTIONS = {"tasks", "rooms", "boxes", "people", "floors", "settings", "furniture", "pausedWeeks"}
 
 app = Flask(__name__)
 

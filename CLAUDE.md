@@ -17,7 +17,8 @@ Kisten-Beschriftung.
 - **Persistenz-Abstraktion**: Es gibt ein `DataStore`-Objekt mit `load(collection, fallback)`
   und `save(collection, data)`. Das ruft `fetch()` gegen `GET/PUT /api/umzug/<collection>` auf
   (kein localStorage mehr). Die Collections sind: `tasks`, `rooms`, `boxes`, `people`,
-  `floors`, `settings`, `furniture` — jede Collection ist genau ein JSON-Dokument.
+  `floors`, `settings`, `furniture`, `pausedWeeks` — jede Collection ist genau ein
+  JSON-Dokument.
 - **Backend**: `server/app.py`, ein minimaler Flask-Server. Kein Datenbank — jede Collection
   wird als eigene Datei `data/<collection>.json` auf der Disk abgelegt (atomic write via
   tmp-Datei + `os.replace`). Der Server validiert Collection-Namen gegen eine feste Whitelist
@@ -49,7 +50,15 @@ Kisten-Beschriftung.
    z.B. mit Claude zu bearbeiten und dann per Import zurückzuspielen.
 2. **KW-Übersicht** — alle Kalenderwochen von heute bis Umzugstermin (+ Puffer), pro Woche
    die zugehörigen Aufgaben, inline neue Aufgabe pro Woche anlegbar. Alle Wochen sind
-   standardmässig aufgeklappt (Nutzerwunsch).
+   standardmässig aufgeklappt (Nutzerwunsch). Jede Woche kann per Klick als „Ferien"
+   markiert werden (`state.pausedWeeks`, Format `"<kw>-<jahr>"`) — pausierte Wochen werden
+   optisch abgeblendet, ihr Inline-Aufgabe-Formular wird durch einen Hinweistext ersetzt,
+   und sie fallen aus dem KW-Dropdown im „Aufgabe hinzufügen"-Formular (Checkliste-Tab) raus,
+   damit dort nichts versehentlich in eine pausierte Woche gelegt wird. Bereits bestehende
+   Aufgaben in einer pausierten Woche werden nicht angetastet/verschoben.
+   Das KW-Dropdown selbst (statt freier KW/Jahr-Zahlenfelder) listet nur die Wochen im
+   selben Bereich wie die KW-Übersicht (`baseWeekRange()`/`weeksInRange()`, von beiden
+   gemeinsam genutzt) und aktualisiert sich automatisch, wenn sich der Umzugstermin ändert.
 3. **Grundriss & Kisten** — mehrere Stockwerke (Standard: 4, umbenennbar/löschbar/neu
    anlegbar über Tabs). Pro Stockwerk beliebig viele Räume, frei verschiebbar/skalierbar
    (Pointer-Events, Koordinaten in %). Zusätzlich **Möbel**: analog zu Räumen frei

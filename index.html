@@ -133,7 +133,12 @@ select.assignee-chip{border:none;cursor:pointer;font-family:inherit;}
 }
 .week-row.current .week-head{background:var(--accent-soft);color:var(--accent);}
 .week-row.movedeadline .week-head{background:var(--warn-soft);color:var(--warn);}
+.week-row.paused{opacity:0.6;}
+.week-row.paused .week-head{background:var(--grey-soft);}
+.week-head-info{display:flex;align-items:center;gap:10px;}
 .week-head .range{color:var(--ink-soft);font-weight:400;font-size:0.76rem;}
+.week-pause-toggle{font-size:0.7rem;padding:2px 9px;border-radius:10px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;color:var(--ink-soft);font-weight:600;}
+.week-row.paused .week-pause-toggle{background:var(--accent-soft);color:var(--accent);border-color:transparent;}
 .week-body{padding:10px 12px;}
 .week-tasks{display:flex;flex-direction:column;gap:5px;margin-bottom:8px;}
 .week-task{display:flex;align-items:center;gap:8px;font-size:0.83rem;padding:4px 0;}
@@ -282,11 +287,8 @@ footer.note{margin-top:26px;font-size:0.76rem;color:var(--ink-soft);border-top:1
           <input type="date" id="newDate">
         </div>
         <div class="field" id="kwFieldWrap" style="display:none;">
-          <label>KW / Jahr</label>
-          <div style="display:flex;gap:4px;">
-            <input type="number" id="newKwWeek" placeholder="KW" min="1" max="53" style="width:65px;">
-            <input type="number" id="newKwYear" placeholder="Jahr" style="width:85px;">
-          </div>
+          <label>KW</label>
+          <select id="newKwSelect"></select>
         </div>
         <button type="submit" class="btn">+ Hinzufügen</button>
       </form>
@@ -496,7 +498,7 @@ const DEFAULT_MOVE_DATE = '2026-10-31';
 /* ---------------------------------------------------------------
    STATE + INIT (async via DataStore)
 ---------------------------------------------------------------- */
-let state = { moveDate:null, tasks:[], rooms:[], boxes:[], people:[], floors:[], furniture:[] };
+let state = { moveDate:null, tasks:[], rooms:[], boxes:[], people:[], floors:[], furniture:[], pausedWeeks:[] };
 let activeFloorId = null;
 
 async function initState(){
@@ -507,6 +509,7 @@ async function initState(){
   state.boxes = await DataStore.load('boxes', []);
   state.people = await DataStore.load('people', []);
   state.furniture = await DataStore.load('furniture', []);
+  state.pausedWeeks = await DataStore.load('pausedWeeks', []);
   state.floors = await DataStore.load('floors', null);
   if(!state.floors || !state.floors.length){
     state.floors = ['Untergeschoss','Erdgeschoss','1. Stock','2. Stock'].map(name => ({id: uid('floor'), name}));
@@ -526,6 +529,7 @@ async function persistPeople(){ await DataStore.save('people', state.people); }
 async function persistSettings(){ await DataStore.save('settings', {moveDate: state.moveDate}); }
 async function persistFloors(){ await DataStore.save('floors', state.floors); }
 async function persistFurniture(){ await DataStore.save('furniture', state.furniture); }
+async function persistPausedWeeks(){ await DataStore.save('pausedWeeks', state.pausedWeeks); }
 
 /* ---------------------------------------------------------------
    TABS
@@ -536,6 +540,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     document.querySelectorAll('section.panel').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab === 'checkliste') renderTasks();
     if(btn.dataset.tab === 'grundriss') renderGrundriss();
     if(btn.dataset.tab === 'wochen') renderWeekOverview();
   });
@@ -549,6 +554,7 @@ moveDateInput.addEventListener('change', async () => {
   state.moveDate = moveDateInput.value || null;
   await persistSettings();
   renderCountdown();
+  populateNewKwSelect();
 });
 function renderCountdown(){
   moveDateInput.value = state.moveDate || '';
@@ -618,8 +624,9 @@ document.getElementById('addTaskForm').addEventListener('submit', async (e) => {
   if(newTaskDateType === 'date'){
     task.date = document.getElementById('newDate').value || null;
   } else {
-    task.kwWeek = parseInt(document.getElementById('newKwWeek').value,10) || null;
-    task.kwYear = parseInt(document.getElementById('newKwYear').value,10) || new Date().getFullYear();
+    const [w, y] = document.getElementById('newKwSelect').value.split('-').map(Number);
+    task.kwWeek = w || null;
+    task.kwYear = y || new Date().getFullYear();
   }
   state.tasks.push(task);
   await persistTasks();
@@ -857,11 +864,37 @@ function renderTasks(){
 /* ---------------------------------------------------------------
    KW ÜBERSICHT
 ---------------------------------------------------------------- */
+// Basis-Zeitraum "heute bis Umzugstermin" (+ Puffer), von der KW-Übersicht und dem
+// KW-Dropdown im Aufgabe-hinzufügen-Formular gemeinsam genutzt.
+function baseWeekRange(){
+  const todayMonday = mondayOfDate(new Date());
+  const end = state.moveDate ? addDays(mondayOfDate(parseDateInput(state.moveDate)), 14) : addDays(todayMonday, 12*7);
+  return { start: todayMonday, end };
+}
+function weeksInRange(start, end){
+  const weeks = [];
+  let cursor = new Date(start);
+  while(cursor <= end){
+    weeks.push(isoWeekYear(cursor));
+    cursor = addDays(cursor, 7);
+  }
+  return weeks;
+}
+
+// Füllt das KW-Dropdown im "Aufgabe hinzufügen"-Formular mit den Wochen von heute bis
+// zum Umzugstermin (+ Puffer) — verhindert Tippfehler bei KW/Jahr durch freie Zahlenfelder.
+function populateNewKwSelect(){
+  const sel = document.getElementById('newKwSelect');
+  const prevValue = sel.value;
+  const { start, end } = baseWeekRange();
+  const weeks = weeksInRange(start, end).filter(wy => !state.pausedWeeks.includes(`${wy.week}-${wy.year}`));
+  sel.innerHTML = weeks.map(wy => `<option value="${wy.week}-${wy.year}">KW ${String(wy.week).padStart(2,'0')}/${wy.year}</option>`).join('');
+  if(weeks.some(wy => `${wy.week}-${wy.year}` === prevValue)) sel.value = prevValue;
+}
+
 function renderWeekOverview(){
   const container = document.getElementById('weekListContainer');
-  const todayMonday = mondayOfDate(new Date());
-  let rangeStart = todayMonday;
-  let rangeEnd = state.moveDate ? addDays(mondayOfDate(parseDateInput(state.moveDate)), 14) : addDays(todayMonday, 12*7);
+  let { start: rangeStart, end: rangeEnd } = baseWeekRange();
 
   // extend range to include any out-of-range kw tasks
   state.tasks.forEach(t => {
@@ -872,12 +905,7 @@ function renderWeekOverview(){
     }
   });
 
-  const weeks = [];
-  let cursor = new Date(rangeStart);
-  while(cursor <= rangeEnd){
-    weeks.push(isoWeekYear(cursor));
-    cursor = addDays(cursor, 7);
-  }
+  const weeks = weeksInRange(rangeStart, rangeEnd);
 
   const moveWy = state.moveDate ? isoWeekYear(parseDateInput(state.moveDate)) : null;
   const todayWy = isoWeekYear(new Date());
@@ -886,6 +914,7 @@ function renderWeekOverview(){
     const monday = mondayOfISOWeek(wy.week, wy.year);
     const isCurrent = wy.week===todayWy.week && wy.year===todayWy.year;
     const isMoveWeek = moveWy && wy.week===moveWy.week && wy.year===moveWy.year;
+    const isPaused = state.pausedWeeks.includes(`${wy.week}-${wy.year}`);
     const weekTasks = state.tasks.filter(t => {
       const eff = effectiveDate(t);
       if(!eff) return false;
@@ -899,19 +928,24 @@ function renderWeekOverview(){
         ${assigneeSelectHtml(t)}
         ${weekMoveSelectHtml(t, weeks, wy)}
       </label>`).join('') : '<div class="empty-note">Keine Aufgaben in dieser Woche.</div>';
-    return `<div class="week-row ${isCurrent?'current':''} ${isMoveWeek?'movedeadline':''}" data-week="${wy.week}" data-year="${wy.year}">
-      <div class="week-head" data-action="toggle-body">
-        <span>KW ${String(wy.week).padStart(2,'0')} · ${wy.year} ${isMoveWeek?'— Termin':''} ${isCurrent?'— diese Woche':''}</span>
-        <span class="range mono">${fmtRange(monday)}</span>
-      </div>
-      <div class="week-body" style="display:block;">
-        <div class="week-tasks">${tasksHtml}</div>
+    const addFormHtml = isPaused ? '<div class="empty-note">Ferien — keine neuen Aufgaben in dieser Woche geplant.</div>' : `
         <button type="button" class="week-add-toggle" data-action="add-toggle">+ Aufgabe in dieser Woche</button>
         <div class="week-inline-form" data-role="inline-form">
           <input type="text" placeholder="Aufgabe" data-role="title">
           <select data-role="assignee"><option value="">— niemand —</option>${state.people.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('')}</select>
           <button type="button" class="btn small" data-action="add-submit">Hinzufügen</button>
+        </div>`;
+    return `<div class="week-row ${isCurrent?'current':''} ${isMoveWeek?'movedeadline':''} ${isPaused?'paused':''}" data-week="${wy.week}" data-year="${wy.year}">
+      <div class="week-head" data-action="toggle-body">
+        <div class="week-head-info">
+          <span>KW ${String(wy.week).padStart(2,'0')} · ${wy.year} ${isMoveWeek?'— Termin':''} ${isCurrent?'— diese Woche':''}</span>
+          <span class="range mono">${fmtRange(monday)}</span>
         </div>
+        <button type="button" class="week-pause-toggle" data-action="toggle-pause">${isPaused ? '🏖️ Ferien' : 'Ferien markieren'}</button>
+      </div>
+      <div class="week-body" style="display:block;">
+        <div class="week-tasks">${tasksHtml}</div>
+        ${addFormHtml}
       </div>
     </div>`;
   }).join('');
@@ -921,6 +955,15 @@ function renderWeekOverview(){
     row.querySelector('[data-action="toggle-body"]').addEventListener('click', () => {
       const body = row.querySelector('.week-body');
       body.style.display = body.style.display==='none' ? 'block' : 'none';
+    });
+    row.querySelector('[data-action="toggle-pause"]').addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const key = `${week}-${year}`;
+      if(state.pausedWeeks.includes(key)) state.pausedWeeks = state.pausedWeeks.filter(k=>k!==key);
+      else state.pausedWeeks.push(key);
+      await persistPausedWeeks();
+      populateNewKwSelect();
+      renderWeekOverview();
     });
     row.querySelectorAll('input[data-taskid]').forEach(cb => {
       cb.addEventListener('change', async () => {
@@ -953,19 +996,21 @@ function renderWeekOverview(){
     });
     const addToggle = row.querySelector('[data-action="add-toggle"]');
     const inlineForm = row.querySelector('[data-role="inline-form"]');
-    addToggle.addEventListener('click', () => inlineForm.classList.toggle('open'));
-    row.querySelector('[data-action="add-submit"]').addEventListener('click', async () => {
-      const titleInp = inlineForm.querySelector('[data-role="title"]');
-      const title = titleInp.value.trim();
-      if(!title) return;
-      state.tasks.push({
-        id: uid('task'), title,
-        assignee: inlineForm.querySelector('[data-role="assignee"]').value,
-        done:false, offsetWeeks:null, dateType:'kw', kwWeek:week, kwYear:year, date:null
+    if(addToggle && inlineForm){
+      addToggle.addEventListener('click', () => inlineForm.classList.toggle('open'));
+      row.querySelector('[data-action="add-submit"]').addEventListener('click', async () => {
+        const titleInp = inlineForm.querySelector('[data-role="title"]');
+        const title = titleInp.value.trim();
+        if(!title) return;
+        state.tasks.push({
+          id: uid('task'), title,
+          assignee: inlineForm.querySelector('[data-role="assignee"]').value,
+          done:false, offsetWeeks:null, dateType:'kw', kwWeek:week, kwYear:year, date:null
+        });
+        await persistTasks();
+        renderWeekOverview();
       });
-      await persistTasks();
-      renderWeekOverview();
-    });
+    }
   });
 }
 
@@ -1279,6 +1324,7 @@ document.getElementById('printLabelsBtn').addEventListener('click', () => {
 ---------------------------------------------------------------- */
 function renderAll(){
   renderCountdown();
+  populateNewKwSelect();
   renderPeople();
   renderTasks();
   renderGrundriss();
