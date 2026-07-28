@@ -6,31 +6,44 @@ Grundriss-Editor mit Kisten-Beschriftung zum Ausdrucken.
 
 ## Nutzung
 
-Einfach `index.html` im Browser öffnen — keine Installation, keine Abhängigkeiten,
-kein Build-Schritt.
+### Lokal (ohne Sync)
 
-Für den gemeinsamen Gebrauch (z.B. per Link teilen), am einfachsten via **GitHub Pages**
-hosten:
-1. Repo auf GitHub pushen
-2. Settings → Pages → Branch `main`, Ordner `/` (root)
-3. Fertig — die Seite ist unter `https://<user>.github.io/<repo>/` erreichbar
+Einfach `index.html` im Browser öffnen — dann laufen die API-Calls ins Leere und nichts wird
+gespeichert. Für echten Betrieb den Server lokal starten:
+
+```bash
+pip install -r server/requirements.txt
+python server/app.py
+```
+
+Danach die App unter `http://localhost:8000` öffnen. Alternativ mit Docker:
+
+```bash
+docker compose up --build
+```
 
 ## Aktueller Stand
 
-Alle Daten (Aufgaben, Personen, Räume, Kisten) werden aktuell **nur lokal im Browser**
-gespeichert (`localStorage`). Das heisst: kein automatischer Sync zwischen Geräten —
-öffnet man die Seite auf einem zweiten Gerät, sieht man einen leeren/eigenen Stand.
+Alle Daten (Aufgaben, Personen, Räume, Kisten) werden vom Server gespeichert (`server/app.py`,
+je Collection eine JSON-Datei unter `data/`). Mehrere Geräte im selben Haushalt sehen denselben
+Stand. Es gibt kein Login — der Server ist für einen einzelnen geteilten Haushalt gedacht.
 
-Geplant ist ein kleines Backend, damit mehrere Personen/Geräte denselben Stand sehen.
-Die Persistenz ist im Code bereits so abstrahiert (`DataStore`), dass sich das ohne grosse
-Umbauten nachrüsten lässt. Details dazu stehen in [`CLAUDE.md`](./CLAUDE.md).
+Deployment läuft containerisiert über Coolify (self-hosted): Push auf `main` triggert per
+GitHub Actions (`.github/workflows/deploy.yml`) einen Coolify-Webhook, der das Docker-Image neu
+baut und deployt. Details dazu stehen in [`CLAUDE.md`](./CLAUDE.md).
 
 ## Struktur
 
 ```
 umzugsplaner/
-├── index.html   # die komplette App (HTML/CSS/JS, keine externen Abhängigkeiten
-│                #  außer Google Fonts)
+├── index.html              # die komplette Frontend-App (HTML/CSS/JS, keine externen
+│                            #  Abhängigkeiten außer Google Fonts)
+├── server/
+│   ├── app.py               # Flask-Server: liefert index.html + GET/PUT /api/umzug/<collection>
+│   └── requirements.txt
+├── Dockerfile
+├── docker-compose.yml        # lokale Entwicklung
+├── .github/workflows/deploy.yml
 ├── README.md    # diese Datei
 └── CLAUDE.md    # technischer Kontext für die Weiterentwicklung mit Claude Code
 ```

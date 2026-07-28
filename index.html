@@ -228,6 +228,11 @@ footer.note{margin-top:26px;font-size:0.76rem;color:var(--ink-soft);border-top:1
       <h2 class="section-title">Fortschritt</h2>
       <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
       <div class="progress-label" id="progressLabel">0 / 0 erledigt</div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn ghost small" id="exportTasksBtn">Checkliste exportieren</button>
+        <button type="button" class="btn ghost small" id="importTasksBtn">Checkliste importieren</button>
+        <input type="file" id="importTasksInput" accept="application/json" style="display:none;">
+      </div>
     </div>
 
     <div class="card">
@@ -323,7 +328,7 @@ footer.note{margin-top:26px;font-size:0.76rem;color:var(--ink-soft);border-top:1
   </section>
 
   <footer class="note">
-    Daten liegen lokal im Browser (localStorage), strukturiert als einzelne JSON-Objekte pro Bereich (Aufgaben, Räume, Kisten, Personen, Termin) — siehe <span class="mono">DataStore</span> im Quelltext. Das ist bewusst so aufgebaut, dass sich die Speicherung später 1:1 durch Aufrufe an eine REST-Schnittstelle ersetzen lässt, ohne den Rest der App anzufassen.
+    Daten liegen auf dem Server, strukturiert als einzelne JSON-Objekte pro Bereich (Aufgaben, Räume, Kisten, Personen, Termin) — siehe <span class="mono">DataStore</span> im Quelltext. Alle Geräte im selben Haushalt sehen denselben Stand.
   </footer>
 </div>
 
@@ -333,27 +338,25 @@ footer.note{margin-top:26px;font-size:0.76rem;color:var(--ink-soft);border-top:1
 
 /* =================================================================
    DATA STORE — thin persistence abstraction.
-   Each collection is stored as ONE clean JSON document.
-   Swap the body of load()/save() for fetch() calls to a REST API
-   later (e.g. GET/PUT /api/umzug/<collection>) without touching
-   any of the rendering code below.
+   Each collection is stored as ONE clean JSON document, synced via
+   a small REST API (GET/PUT /api/umzug/<collection>) backed by the
+   Flask server in server/app.py — see CLAUDE.md for details.
 ================================================================= */
-const STORAGE_PREFIX = 'umzugsplaner:';
 const DataStore = {
   async load(collection, fallback){
     try{
-      const raw = localStorage.getItem(STORAGE_PREFIX + collection);
-      return raw ? JSON.parse(raw) : fallback;
-      // REST equivalent:
-      // const res = await fetch(`/api/umzug/${collection}`); return res.ok ? await res.json() : fallback;
+      const res = await fetch(`/api/umzug/${collection}`);
+      return res.ok ? await res.json() : fallback;
     }catch(e){ return fallback; }
   },
   async save(collection, data){
     try{
-      localStorage.setItem(STORAGE_PREFIX + collection, JSON.stringify(data));
-      return true;
-      // REST equivalent:
-      // await fetch(`/api/umzug/${collection}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+      const res = await fetch(`/api/umzug/${collection}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+      return res.ok;
     }catch(e){ return false; }
   },
   async exportAll(collections){
@@ -600,6 +603,58 @@ document.getElementById('addTaskForm').addEventListener('submit', async (e) => {
   document.getElementById('kwFieldWrap').style.display='none';
   document.querySelectorAll('#dateTypeToggle button').forEach(b=>b.classList.toggle('active', b.dataset.type==='date'));
   newTaskDateType='date';
+  renderTasks();
+});
+
+/* ---------------------------------------------------------------
+   EXPORT / IMPORT CHECKLISTE
+   Zum Weiterbearbeiten ausserhalb der App (z.B. mit Claude) und
+   anschliessendem Zurückspielen als JSON.
+---------------------------------------------------------------- */
+document.getElementById('exportTasksBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state.tasks, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `umzugsplaner-checkliste-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('importTasksBtn').addEventListener('click', () => {
+  document.getElementById('importTasksInput').click();
+});
+
+document.getElementById('importTasksInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  let data;
+  try{
+    data = JSON.parse(await file.text());
+  }catch(err){
+    alert('Datei konnte nicht gelesen werden — ist es gültiges JSON?');
+    return;
+  }
+  if(!Array.isArray(data)){
+    alert('Ungültiges Format: erwartet wird eine Liste von Aufgaben (JSON-Array).');
+    return;
+  }
+  if(!confirm(`${data.length} Aufgabe(n) importieren und die aktuelle Checkliste ersetzen?`)) return;
+  state.tasks = data.map(t => ({
+    id: t.id || uid('task'),
+    title: t.title || '',
+    assignee: t.assignee || '',
+    done: !!t.done,
+    dateType: t.dateType === 'kw' ? 'kw' : 'date',
+    date: t.date || null,
+    kwWeek: t.kwWeek ?? null,
+    kwYear: t.kwYear ?? null,
+    offsetWeeks: t.offsetWeeks ?? null
+  }));
+  await persistTasks();
   renderTasks();
 });
 
