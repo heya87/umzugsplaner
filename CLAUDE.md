@@ -17,7 +17,7 @@ Kisten-Beschriftung.
 - **Persistenz-Abstraktion**: Es gibt ein `DataStore`-Objekt mit `load(collection, fallback)`
   und `save(collection, data)`. Das ruft `fetch()` gegen `GET/PUT /api/umzug/<collection>` auf
   (kein localStorage mehr). Die Collections sind: `tasks`, `rooms`, `boxes`, `people`,
-  `floors`, `settings` — jede Collection ist genau ein JSON-Dokument.
+  `floors`, `settings`, `furniture` — jede Collection ist genau ein JSON-Dokument.
 - **Backend**: `server/app.py`, ein minimaler Flask-Server. Kein Datenbank — jede Collection
   wird als eigene Datei `data/<collection>.json` auf der Disk abgelegt (atomic write via
   tmp-Datei + `os.replace`). Der Server validiert Collection-Namen gegen eine feste Whitelist
@@ -31,7 +31,7 @@ Kisten-Beschriftung.
   SvelteKit+Postgres+Drizzle, was für diese App bewusst zu schwer wäre). **Wichtig**: In
   Coolify muss ein persistentes Volume auf `/app/data` gemountet sein, sonst gehen die Daten
   bei jedem Redeploy verloren.
-- State: ein einfaches globales `state`-Objekt (`{ moveDate, tasks, rooms, boxes, people, floors }`).
+- State: ein einfaches globales `state`-Objekt (`{ moveDate, tasks, rooms, boxes, people, floors, furniture }`).
   Kein virtuelles DOM — jede `render*()`-Funktion baut `innerHTML` neu und hängt danach
   Event-Listener an die frisch erzeugten Elemente.
 - Datumslogik: eigene ISO-Wochen-Helper (`isoWeekYear`, `mondayOfISOWeek`, …), alles in UTC
@@ -52,9 +52,21 @@ Kisten-Beschriftung.
    standardmässig aufgeklappt (Nutzerwunsch).
 3. **Grundriss & Kisten** — mehrere Stockwerke (Standard: 4, umbenennbar/löschbar/neu
    anlegbar über Tabs). Pro Stockwerk beliebig viele Räume, frei verschiebbar/skalierbar
-   (Pointer-Events, Koordinaten in %). Kisten-Manifest: jede Kiste bekommt Nummer, Zielraum
-   (Dropdown gruppiert nach Stockwerk), Inhalt, Zerbrechlich-Flag. Druckbare Etiketten via
-   `window.print()` + `@media print`.
+   (Pointer-Events, Koordinaten in %). Zusätzlich **Möbel**: analog zu Räumen frei
+   verschiebbar/skalierbar auf demselben Grundriss (grobe Planung, kein exakter Massstab,
+   optisch unterscheidbar durch gestrichelten Rand statt Vollfarbe); pro Möbelstück ist eine
+   Anzahl Etiketten einstellbar (Möbel-Liste unter dem Grundriss), für mehrteilige Möbel. Ein
+   echtes Grundriss-Foto als Hintergrund ist bewusst (noch) nicht umgesetzt.
+   **Kisten-Etiketten**: bewusst *keine* Inhalts-/Zerbrechlich-Erfassung in der App — pro Raum
+   wird nur eine Anzahl benötigter Etiketten festgelegt (`state.boxes` ist `{id, roomId,
+   count}`, keine Kistennummern mehr). Jede gedruckte Etikette hat ein leeres Feld zum
+   Beschriften beim Packen sowie eine „☐ Zerbrechlich"-Zeile zum Ankreuzen von Hand.
+   Ein einziger „Alle Etiketten drucken"-Button erzeugt Kisten- und Möbel-Etiketten gemeinsam
+   (`renderGrundriss`-Button `printLabelsBtn`) über `window.print()` + `@media print`.
+   **Wichtig**: der `#printLabels`-Container muss ein **direktes Kind von `.wrap`** sein — die
+   Print-CSS-Regel (`.wrap > *:not(.print-labels){display:none}`) versteckt sonst den
+   gesamten Elternknoten inkl. der Etiketten (führte zu einem leeren Ausdruck, bevor das
+   gefixt wurde).
 
 ## Bewusst entfernte Features (nicht ohne Rückfrage wieder einbauen)
 Der Nutzer hat im Verlauf explizit gebeten, folgendes **zu entfernen**:

@@ -112,6 +112,7 @@ form.add-form input[type=text]{min-width:210px;flex:1;}
 .task-meta{font-size:0.75rem;color:var(--ink-soft);margin-top:3px;display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
 .assignee-chip{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:1px 8px;font-weight:600;font-size:0.72rem;}
 .assignee-chip.unassigned{background:var(--grey-soft);color:var(--ink-soft);}
+select.assignee-chip{border:none;cursor:pointer;font-family:inherit;}
 .task-actions{flex:0 0 auto;}
 .icon-btn{border:1px solid var(--border);background:#fff;border-radius:5px;padding:5px 8px;cursor:pointer;font-size:0.82rem;}
 .icon-btn:hover{background:var(--grey-soft);}
@@ -138,6 +139,7 @@ form.add-form input[type=text]{min-width:210px;flex:1;}
 .week-task{display:flex;align-items:center;gap:8px;font-size:0.83rem;padding:4px 0;}
 .week-task input[type=checkbox]{accent-color:var(--accent);cursor:pointer;}
 .week-task.done{opacity:0.5;text-decoration:line-through;}
+.week-move-select{margin-left:auto;font-size:0.72rem;padding:1px 4px;border:1px solid var(--border-strong);border-radius:4px;color:var(--ink-soft);cursor:pointer;font-family:inherit;}
 .week-add-toggle{font-size:0.78rem;color:var(--accent);cursor:pointer;background:none;border:none;padding:0;font-weight:600;}
 .week-inline-form{display:none;gap:8px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);align-items:flex-end;}
 .week-inline-form.open{display:flex;}
@@ -160,9 +162,21 @@ form.add-form input[type=text]{min-width:210px;flex:1;}
 }
 .room-box .resize-handle{position:absolute;right:0;bottom:0;width:15px;height:15px;cursor:nwse-resize;background:var(--ink);clip-path:polygon(100% 0, 0 100%, 100% 100%);}
 .room-box .room-del{position:absolute;top:2px;right:2px;background:rgba(255,255,255,0.9);border:1px solid var(--border-strong);border-radius:3px;width:18px;height:18px;font-size:0.7rem;line-height:1;cursor:pointer;}
+.furniture-box{
+  position:absolute;border:2px dashed var(--ink-soft);border-radius:5px;
+  background:repeating-linear-gradient(45deg, rgba(62,58,54,0.14), rgba(62,58,54,0.14) 6px, rgba(62,58,54,0.05) 6px, rgba(62,58,54,0.05) 12px);
+  display:flex;flex-direction:column;justify-content:flex-end;padding:5px;cursor:move;user-select:none;
+}
+.furniture-box .furniture-label{
+  font-weight:700;font-size:0.7rem;background:rgba(255,255,255,0.9);padding:2px 5px;border-radius:3px;
+  display:inline-block;border:1px solid rgba(0,0,0,0.12);cursor:text;
+}
+.furniture-box .resize-handle{position:absolute;right:0;bottom:0;width:13px;height:13px;cursor:nwse-resize;background:var(--ink-soft);clip-path:polygon(100% 0, 0 100%, 100% 100%);}
+.furniture-box .furniture-del{position:absolute;top:2px;right:2px;background:rgba(255,255,255,0.9);border:1px solid var(--border-strong);border-radius:3px;width:16px;height:16px;font-size:0.65rem;line-height:1;cursor:pointer;}
 .room-legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
 .room-chip{display:flex;align-items:center;gap:6px;font-size:0.78rem;border:1px solid var(--border);background:#fff;border-radius:12px;padding:3px 10px 3px 6px;}
 .room-chip .swatch{width:11px;height:11px;border-radius:50%;}
+.room-chip .furniture-qty{width:42px;padding:2px 4px;border:1px solid var(--border-strong);border-radius:4px;font-size:0.76rem;}
 
 .floor-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
 .floor-tab{
@@ -191,7 +205,7 @@ form.add-form input[type=text]{min-width:210px;flex:1;}
   .label .room{font-size:2.3rem;font-weight:800;text-transform:uppercase;}
   .label .num{font-family:'JetBrains Mono',monospace;font-size:1.2rem;margin-top:6px;}
   .label .content{font-size:1rem;margin-top:8px;color:#333;}
-  .label .fragile{color:#b5504a;font-weight:800;margin-top:10px;font-size:1.1rem;text-transform:uppercase;}
+  .label .write-area{border:1px dashed #999;border-radius:4px;height:70px;margin-top:14px;}
 }
 
 footer.note{margin-top:26px;font-size:0.76rem;color:var(--ink-soft);border-top:1px solid var(--border);padding-top:12px;}
@@ -304,32 +318,41 @@ footer.note{margin-top:26px;font-size:0.76rem;color:var(--ink-soft);border-top:1
   <section class="panel" id="panel-grundriss">
     <div class="card">
       <h2 class="section-title">Grundriss des neuen Hauses</h2>
-      <p class="section-desc">Räume anlegen, benennen, ziehen und per Eckgriff skalieren. Danach im Kisten-Manifest jede Kiste einem Raum zuweisen und Etiketten drucken.</p>
+      <p class="section-desc">Räume anlegen, benennen, ziehen und per Eckgriff skalieren. Möbel funktionieren gleich — grobe Platzierung reicht, kein exakter Massstab.</p>
       <div class="floor-tabs" id="floorTabs"></div>
       <div class="plan-toolbar">
         <button class="btn small" id="addRoomBtn">+ Raum hinzufügen</button>
+        <button class="btn small" id="addFurnitureBtn">+ Möbel hinzufügen</button>
         <button class="btn ghost small" id="clearPlanBtn">Stock leeren</button>
       </div>
       <div class="plan-area" id="planArea"></div>
       <div class="room-legend" id="roomLegend"></div>
+      <div class="room-legend" id="furnitureLegend"></div>
+      <p class="section-desc" style="margin-top:4px;">Anzahl Etiketten pro Möbelstück (z.B. bei mehrteiligen Möbeln) direkt bei der Möbel-Liste oben einstellbar.</p>
     </div>
 
     <div class="card">
-      <h2 class="section-title">Kisten-Manifest</h2>
-      <p class="section-desc">Jede Kiste bekommt eine Nummer, einen Zielraum und optional einen Inhalt-Hinweis.</p>
-      <button class="btn small" id="addBoxBtn" style="margin-bottom:12px;">+ Kiste hinzufügen</button>
+      <h2 class="section-title">Kisten-Etiketten</h2>
+      <p class="section-desc">Wie viele Kisten-Etiketten pro Raum? Was drin ist, wird beim Packen von Hand auf die Etikette geschrieben — nicht in der App erfasst.</p>
+      <button class="btn small" id="addBoxBtn" style="margin-bottom:12px;">+ Zeile hinzufügen</button>
       <table class="box-table">
-        <thead><tr><th>Nr.</th><th>Zielraum</th><th>Inhalt</th><th>Zerbrechlich</th><th></th></tr></thead>
+        <thead><tr><th>Zielraum</th><th>Anzahl Etiketten</th><th></th></tr></thead>
         <tbody id="boxTableBody"></tbody>
       </table>
-      <div style="margin-top:16px;"><button class="btn ghost" id="printLabelsBtn">Etiketten drucken</button></div>
-      <div class="print-labels" id="printLabels"></div>
+    </div>
+
+    <div class="card">
+      <button class="btn ghost" id="printLabelsBtn">Alle Etiketten drucken (Kisten &amp; Möbel)</button>
     </div>
   </section>
 
   <footer class="note">
     Daten liegen auf dem Server, strukturiert als einzelne JSON-Objekte pro Bereich (Aufgaben, Räume, Kisten, Personen, Termin) — siehe <span class="mono">DataStore</span> im Quelltext. Alle Geräte im selben Haushalt sehen denselben Stand.
   </footer>
+
+  <!-- Muss direktes Kind von .wrap sein, sonst greift die @media print-Regel unten nicht
+       (die versteckt nur DIREKTE Kinder von .wrap, die kein .print-labels sind). -->
+  <div class="print-labels" id="printLabels"></div>
 </div>
 
 <script>
@@ -473,7 +496,7 @@ const DEFAULT_MOVE_DATE = '2026-10-31';
 /* ---------------------------------------------------------------
    STATE + INIT (async via DataStore)
 ---------------------------------------------------------------- */
-let state = { moveDate:null, tasks:[], rooms:[], boxes:[], people:[], floors:[] };
+let state = { moveDate:null, tasks:[], rooms:[], boxes:[], people:[], floors:[], furniture:[] };
 let activeFloorId = null;
 
 async function initState(){
@@ -483,6 +506,7 @@ async function initState(){
   state.rooms = await DataStore.load('rooms', []);
   state.boxes = await DataStore.load('boxes', []);
   state.people = await DataStore.load('people', []);
+  state.furniture = await DataStore.load('furniture', []);
   state.floors = await DataStore.load('floors', null);
   if(!state.floors || !state.floors.length){
     state.floors = ['Untergeschoss','Erdgeschoss','1. Stock','2. Stock'].map(name => ({id: uid('floor'), name}));
@@ -501,6 +525,7 @@ async function persistBoxes(){ await DataStore.save('boxes', state.boxes); }
 async function persistPeople(){ await DataStore.save('people', state.people); }
 async function persistSettings(){ await DataStore.save('settings', {moveDate: state.moveDate}); }
 async function persistFloors(){ await DataStore.save('floors', state.floors); }
+async function persistFurniture(){ await DataStore.save('furniture', state.furniture); }
 
 /* ---------------------------------------------------------------
    TABS
@@ -672,9 +697,21 @@ function taskDateLabel(task){
   return 'kein Termin';
 }
 
-function assigneeChip(task){
-  if(task.assignee) return `<span class="assignee-chip">${escapeHtml(task.assignee)}</span>`;
-  return `<span class="assignee-chip unassigned">nicht zugewiesen</span>`;
+// Direkt anklickbares Dropdown statt reinem Text-Chip, damit man die Zuweisung ändern kann
+// ohne erst in den "Bearbeiten"-Modus zu wechseln.
+function assigneeSelectHtml(task){
+  return `<select class="assignee-chip ${task.assignee?'':'unassigned'}" data-action="quick-assign" data-taskid="${task.id}">
+    <option value="" ${task.assignee?'':'selected'}>nicht zugewiesen</option>
+    ${state.people.map(p=>`<option value="${escapeHtml(p)}" ${p===task.assignee?'selected':''}>${escapeHtml(p)}</option>`).join('')}
+  </select>`;
+}
+
+// Verschiebt eine Aufgabe per Dropdown in eine andere Woche (Alternative zu Drag&Drop —
+// auf Mobilgeräten zuverlässiger und deutlich weniger Aufwand).
+function weekMoveSelectHtml(task, weeks, currentWy){
+  return `<select class="week-move-select" data-action="move-week" data-taskid="${task.id}" title="In andere Woche verschieben">
+    ${weeks.map(wy => `<option value="${wy.week}-${wy.year}" ${wy.week===currentWy.week && wy.year===currentWy.year ? 'selected':''}>KW ${String(wy.week).padStart(2,'0')}/${wy.year}</option>`).join('')}
+  </select>`;
 }
 
 let editingTaskId = null;
@@ -741,7 +778,7 @@ function renderTasks(){
         <div class="task-meta">
           <span class="mono">${taskDateLabel(t)}</span>
           ${dLeft!==null && !t.done ? `<span>${dLeft>=0 ? 'in '+dLeft+' Tg.' : Math.abs(dLeft)+' Tg. überfällig'}</span>` : ''}
-          ${assigneeChip(t)}
+          ${assigneeSelectHtml(t)}
         </div>
       </div>
       <div class="task-actions">
@@ -799,6 +836,12 @@ function renderTasks(){
       await persistTasks();
       renderTasks();
     });
+    row.querySelector('[data-action="quick-assign"]').addEventListener('change', async (ev) => {
+      const t = state.tasks.find(x=>x.id===id);
+      t.assignee = ev.target.value;
+      await persistTasks();
+      renderTasks();
+    });
     row.querySelector('[data-action="edit"]').addEventListener('click', () => {
       editingTaskId = id;
       renderTasks();
@@ -853,7 +896,8 @@ function renderWeekOverview(){
       <label class="week-task ${t.done?'done':''}">
         <input type="checkbox" data-taskid="${t.id}" ${t.done?'checked':''}>
         <span>${escapeHtml(t.title)}</span>
-        ${assigneeChip(t)}
+        ${assigneeSelectHtml(t)}
+        ${weekMoveSelectHtml(t, weeks, wy)}
       </label>`).join('') : '<div class="empty-note">Keine Aufgaben in dieser Woche.</div>';
     return `<div class="week-row ${isCurrent?'current':''} ${isMoveWeek?'movedeadline':''}" data-week="${wy.week}" data-year="${wy.year}">
       <div class="week-head" data-action="toggle-body">
@@ -878,10 +922,31 @@ function renderWeekOverview(){
       const body = row.querySelector('.week-body');
       body.style.display = body.style.display==='none' ? 'block' : 'none';
     });
-    row.querySelectorAll('[data-taskid]').forEach(cb => {
+    row.querySelectorAll('input[data-taskid]').forEach(cb => {
       cb.addEventListener('change', async () => {
         const t = state.tasks.find(x=>x.id===cb.dataset.taskid);
         t.done = cb.checked;
+        await persistTasks();
+        renderWeekOverview();
+      });
+    });
+    row.querySelectorAll('[data-action="quick-assign"]').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        const t = state.tasks.find(x=>x.id===sel.dataset.taskid);
+        t.assignee = sel.value;
+        await persistTasks();
+        renderWeekOverview();
+      });
+    });
+    row.querySelectorAll('[data-action="move-week"]').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        const t = state.tasks.find(x=>x.id===sel.dataset.taskid);
+        const [w, y] = sel.value.split('-').map(Number);
+        t.dateType = 'kw';
+        t.kwWeek = w;
+        t.kwYear = y;
+        t.date = null;
+        t.offsetWeeks = null;
         await persistTasks();
         renderWeekOverview();
       });
@@ -916,10 +981,19 @@ document.getElementById('addRoomBtn').addEventListener('click', async () => {
   await persistRooms();
   renderGrundriss();
 });
+document.getElementById('addFurnitureBtn').addEventListener('click', async () => {
+  const furnitureOnFloor = state.furniture.filter(f => f.floorId === activeFloorId);
+  state.furniture.push({ id: uid('furniture'), floorId: activeFloorId, name:'Neues Möbel', x:8+(furnitureOnFloor.length*6)%70, y:8+(furnitureOnFloor.length*10)%70, w:14, h:10, count:1 });
+  await persistFurniture();
+  renderGrundriss();
+});
 document.getElementById('clearPlanBtn').addEventListener('click', async () => {
-  if(!confirm('Alle Räume auf diesem Stock löschen?')) return;
+  if(!confirm('Alle Räume und Möbel auf diesem Stock löschen? Zugewiesene Kisten-Etiketten für diese Räume werden ebenfalls entfernt.')) return;
+  const roomIdsOnFloor = state.rooms.filter(r => r.floorId === activeFloorId).map(r => r.id);
   state.rooms = state.rooms.filter(r => r.floorId !== activeFloorId);
-  await persistRooms();
+  state.furniture = state.furniture.filter(f => f.floorId !== activeFloorId);
+  state.boxes = state.boxes.filter(b => !roomIdsOnFloor.includes(b.roomId));
+  await Promise.all([persistRooms(), persistFurniture(), persistBoxes()]);
   renderGrundriss();
 });
 document.getElementById('floorTabs').addEventListener('click', async (e) => {
@@ -937,10 +1011,13 @@ document.getElementById('floorTabs').addEventListener('click', async (e) => {
     e.stopPropagation();
     if(state.floors.length <= 1){ alert('Mindestens ein Stock muss bestehen bleiben.'); return; }
     const floorId = delBtn.closest('.floor-tab').dataset.id;
-    if(!confirm('Diesen Stock inkl. aller Räume löschen? Zugewiesene Kisten werden dadurch ohne Raum.')) return;
+    if(!confirm('Diesen Stock inkl. aller Räume und Möbel löschen? Zugewiesene Kisten-Etiketten für diese Räume werden ebenfalls entfernt.')) return;
+    const roomIdsOnFloor = state.rooms.filter(r => r.floorId === floorId).map(r => r.id);
     state.floors = state.floors.filter(f => f.id !== floorId);
     state.rooms = state.rooms.filter(r => r.floorId !== floorId);
-    await Promise.all([persistFloors(), persistRooms()]);
+    state.furniture = state.furniture.filter(f => f.floorId !== floorId);
+    state.boxes = state.boxes.filter(b => !roomIdsOnFloor.includes(b.roomId));
+    await Promise.all([persistFloors(), persistRooms(), persistFurniture(), persistBoxes()]);
     if(activeFloorId === floorId) activeFloorId = state.floors[0].id;
     renderFloorTabs(); renderGrundriss();
     return;
@@ -972,6 +1049,46 @@ function renderFloorTabs(){
   });
 }
 
+// Shared drag/resize interaction for room-box and furniture-box elements.
+// Mutates item.x/y/w/h (percent values) and calls onPersist() once the pointer is released.
+function attachDragResize(el, area, item, onPersist){
+  el.addEventListener('pointerdown', (ev) => {
+    if(ev.target.closest('[data-nodrag]')) return;
+    const areaRect = area.getBoundingClientRect();
+    const startX = ev.clientX, startY = ev.clientY;
+    const startXPct = item.x, startYPct = item.y;
+    el.setPointerCapture(ev.pointerId);
+    function onMove(mv){
+      const dxPct = (mv.clientX - startX) / areaRect.width * 100;
+      const dyPct = (mv.clientY - startY) / areaRect.height * 100;
+      item.x = Math.max(0, Math.min(100-item.w, startXPct + dxPct));
+      item.y = Math.max(0, Math.min(100-item.h, startYPct + dyPct));
+      el.style.left = item.x + '%'; el.style.top = item.y + '%';
+    }
+    function onUp(){ el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp); onPersist(); }
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+  });
+
+  el.querySelector('.resize-handle').addEventListener('pointerdown', (ev) => {
+    ev.stopPropagation();
+    const areaRect = area.getBoundingClientRect();
+    const startX = ev.clientX, startY = ev.clientY;
+    const startW = item.w, startH = item.h;
+    el.setPointerCapture(ev.pointerId);
+    function onMove(mv){
+      const dwPct = (mv.clientX - startX) / areaRect.width * 100;
+      const dhPct = (mv.clientY - startY) / areaRect.height * 100;
+      item.w = Math.max(8, Math.min(100-item.x, startW + dwPct));
+      item.h = Math.max(8, Math.min(100-item.y, startH + dhPct));
+      el.style.width = item.w + '%'; el.style.height = item.h + '%';
+    }
+    function onUp(){ el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp); onPersist(); }
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+  });
+}
+
 function renderGrundriss(){
   renderFloorTabs();
   const area = document.getElementById('planArea');
@@ -986,8 +1103,8 @@ function renderGrundriss(){
     el.style.borderColor = room.color;
     el.dataset.id = room.id;
     el.innerHTML = `
-      <span class="room-label" contenteditable="true" spellcheck="false">${escapeHtml(room.name)}</span>
-      <button class="room-del" title="Raum löschen">×</button>
+      <span class="room-label" contenteditable="true" spellcheck="false" data-nodrag>${escapeHtml(room.name)}</span>
+      <button class="room-del" title="Raum löschen" data-nodrag>×</button>
       <div class="resize-handle"></div>`;
     area.appendChild(el);
 
@@ -1002,47 +1119,47 @@ function renderGrundriss(){
     el.querySelector('.room-del').addEventListener('click', async (ev) => {
       ev.stopPropagation();
       state.rooms = state.rooms.filter(r=>r.id!==room.id);
-      await persistRooms();
+      state.boxes = state.boxes.filter(b=>b.roomId!==room.id);
+      await Promise.all([persistRooms(), persistBoxes()]);
       renderGrundriss();
     });
 
-    el.addEventListener('pointerdown', (ev) => {
-      if(ev.target.classList.contains('resize-handle') || ev.target.classList.contains('room-del') || ev.target.classList.contains('room-label')) return;
-      const areaRect = area.getBoundingClientRect();
-      const startX = ev.clientX, startY = ev.clientY;
-      const startXPct = room.x, startYPct = room.y;
-      el.setPointerCapture(ev.pointerId);
-      function onMove(mv){
-        const dxPct = (mv.clientX - startX) / areaRect.width * 100;
-        const dyPct = (mv.clientY - startY) / areaRect.height * 100;
-        room.x = Math.max(0, Math.min(100-room.w, startXPct + dxPct));
-        room.y = Math.max(0, Math.min(100-room.h, startYPct + dyPct));
-        el.style.left = room.x + '%'; el.style.top = room.y + '%';
-      }
-      function onUp(){ el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp); persistRooms(); }
-      el.addEventListener('pointermove', onMove);
-      el.addEventListener('pointerup', onUp);
+    attachDragResize(el, area, room, persistRooms);
+  });
+
+  const furnitureOnFloor = state.furniture.filter(f => f.floorId === activeFloorId);
+  furnitureOnFloor.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'furniture-box';
+    el.style.left = item.x + '%'; el.style.top = item.y + '%';
+    el.style.width = item.w + '%'; el.style.height = item.h + '%';
+    el.dataset.id = item.id;
+    el.innerHTML = `
+      <span class="furniture-label" contenteditable="true" spellcheck="false" data-nodrag>${escapeHtml(item.name)}</span>
+      <button class="furniture-del" title="Möbel löschen" data-nodrag>×</button>
+      <div class="resize-handle"></div>`;
+    area.appendChild(el);
+
+    const label = el.querySelector('.furniture-label');
+    label.addEventListener('blur', async () => {
+      item.name = label.textContent.trim() || 'Möbel';
+      await persistFurniture(); renderFurnitureLegend();
+    });
+    label.addEventListener('keydown', ev => { if(ev.key==='Enter'){ ev.preventDefault(); label.blur(); } });
+    label.addEventListener('pointerdown', ev => ev.stopPropagation());
+
+    el.querySelector('.furniture-del').addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      state.furniture = state.furniture.filter(f=>f.id!==item.id);
+      await persistFurniture();
+      renderGrundriss();
     });
 
-    el.querySelector('.resize-handle').addEventListener('pointerdown', (ev) => {
-      ev.stopPropagation();
-      const areaRect = area.getBoundingClientRect();
-      const startX = ev.clientX, startY = ev.clientY;
-      const startW = room.w, startH = room.h;
-      el.setPointerCapture(ev.pointerId);
-      function onMove(mv){
-        const dwPct = (mv.clientX - startX) / areaRect.width * 100;
-        const dhPct = (mv.clientY - startY) / areaRect.height * 100;
-        room.w = Math.max(8, Math.min(100-room.x, startW + dwPct));
-        room.h = Math.max(8, Math.min(100-room.y, startH + dhPct));
-        el.style.width = room.w + '%'; el.style.height = room.h + '%';
-      }
-      function onUp(){ el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp); persistRooms(); }
-      el.addEventListener('pointermove', onMove);
-      el.addEventListener('pointerup', onUp);
-    });
+    attachDragResize(el, area, item, persistFurniture);
   });
+
   renderRoomLegend();
+  renderFurnitureLegend();
   renderBoxTable();
 }
 function renderRoomLegend(){
@@ -1050,10 +1167,25 @@ function renderRoomLegend(){
   const roomsOnFloor = state.rooms.filter(r => r.floorId === activeFloorId);
   legend.innerHTML = roomsOnFloor.length ? roomsOnFloor.map(r => `<span class="room-chip"><span class="swatch" style="background:${r.color}"></span>${escapeHtml(r.name)}</span>`).join('') : '<span class="empty-note">Noch keine Räume auf diesem Stock.</span>';
 }
+function renderFurnitureLegend(){
+  const legend = document.getElementById('furnitureLegend');
+  const furnitureOnFloor = state.furniture.filter(f => f.floorId === activeFloorId);
+  legend.innerHTML = furnitureOnFloor.length ? furnitureOnFloor.map(f => `
+    <span class="room-chip">
+      ${escapeHtml(f.name)}
+      <input type="number" class="furniture-qty" data-id="${f.id}" min="1" value="${f.count||1}" title="Anzahl Etiketten für dieses Möbelstück">
+    </span>`).join('') : '<span class="empty-note">Noch keine Möbel auf diesem Stock.</span>';
+  legend.querySelectorAll('.furniture-qty').forEach(inp => {
+    inp.addEventListener('change', async () => {
+      const item = state.furniture.find(f => f.id === inp.dataset.id);
+      item.count = parseInt(inp.value,10) || 1;
+      await persistFurniture();
+    });
+  });
+}
 
 document.getElementById('addBoxBtn').addEventListener('click', async () => {
-  const nextNum = (state.boxes.reduce((m,b)=>Math.max(m,b.number||0),0)) + 1;
-  state.boxes.push({ id: uid('box'), number:nextNum, roomId: state.rooms[0] ? state.rooms[0].id : '', content:'', fragile:false });
+  state.boxes.push({ id: uid('box'), roomId: state.rooms[0] ? state.rooms[0].id : '', count:1 });
   await persistBoxes();
   renderBoxTable();
 });
@@ -1068,13 +1200,11 @@ function roomOptionsHtml(selectedId){
 
 function renderBoxTable(){
   const tbody = document.getElementById('boxTableBody');
-  if(!state.boxes.length){ tbody.innerHTML = '<tr><td colspan="5" class="empty-note">Noch keine Kisten erfasst.</td></tr>'; return; }
+  if(!state.boxes.length){ tbody.innerHTML = '<tr><td colspan="3" class="empty-note">Noch keine Kisten-Etiketten definiert.</td></tr>'; return; }
   tbody.innerHTML = state.boxes.map(b => `
     <tr data-id="${b.id}">
-      <td><input type="number" min="1" value="${b.number}" data-field="number" style="width:64px;"></td>
       <td><select data-field="roomId">${roomOptionsHtml(b.roomId)}</select></td>
-      <td><input type="text" data-field="content" value="${escapeHtml(b.content)}" placeholder="z.B. Bücher, Geschirr…"></td>
-      <td style="text-align:center;"><input type="checkbox" data-field="fragile" ${b.fragile?'checked':''}></td>
+      <td><input type="number" min="1" value="${b.count||1}" data-field="count" style="width:70px;"></td>
       <td><button class="icon-btn" data-action="delbox">Löschen</button></td>
     </tr>`).join('');
 
@@ -1083,10 +1213,9 @@ function renderBoxTable(){
     const box = state.boxes.find(b=>b.id===id);
     row.querySelectorAll('[data-field]').forEach(inp => {
       const field = inp.dataset.field;
-      const evt = (inp.type === 'checkbox' || inp.tagName==='SELECT') ? 'change' : 'input';
+      const evt = inp.tagName==='SELECT' ? 'change' : 'input';
       inp.addEventListener(evt, async () => {
-        if(field==='fragile') box.fragile = inp.checked;
-        else if(field==='number') box.number = parseInt(inp.value,10) || box.number;
+        if(field==='count') box.count = parseInt(inp.value,10) || 1;
         else box[field] = inp.value;
         await persistBoxes();
       });
@@ -1099,22 +1228,49 @@ function renderBoxTable(){
   });
 }
 
+// Ein Möbelstück hat keine eigene Raumzuweisung — der Raum wird aus der Position auf dem
+// Grundriss abgeleitet (Mittelpunkt des Möbels liegt innerhalb eines Raum-Rechtecks).
+function roomForFurniture(item){
+  const cx = item.x + item.w/2, cy = item.y + item.h/2;
+  return state.rooms.find(r => r.floorId === item.floorId && cx >= r.x && cx <= r.x+r.w && cy >= r.y && cy <= r.y+r.h) || null;
+}
+
 document.getElementById('printLabelsBtn').addEventListener('click', () => {
   const roomsById = {}; state.rooms.forEach(r => roomsById[r.id]=r);
   const floorsById = {}; state.floors.forEach(f => floorsById[f.id]=f);
-  const container = document.getElementById('printLabels');
-  if(!state.boxes.length){ alert('Keine Kisten vorhanden.'); return; }
-  container.innerHTML = state.boxes.map(b => {
+
+  const boxLabels = [];
+  state.boxes.forEach(b => {
     const room = roomsById[b.roomId];
     const floor = room ? floorsById[room.floorId] : null;
-    return `<div class="label" style="border-color:${room?room.color:'#000'}">
-      <div class="room">${room ? escapeHtml(room.name) : '— kein Raum —'}</div>
-      ${floor ? `<div class="content">${escapeHtml(floor.name)}</div>` : ''}
-      <div class="num">Kiste Nr. ${b.number}</div>
-      ${b.content ? `<div class="content">${escapeHtml(b.content)}</div>` : ''}
-      ${b.fragile ? `<div class="fragile">Zerbrechlich</div>` : ''}
-    </div>`;
-  }).join('');
+    const count = Math.max(1, parseInt(b.count,10) || 1);
+    for(let i=1;i<=count;i++){
+      boxLabels.push(`<div class="label" style="border-color:${room?room.color:'#000'}">
+        <div class="room">${room ? escapeHtml(room.name) : '— kein Raum —'}</div>
+        ${floor ? `<div class="content">${escapeHtml(floor.name)}</div>` : ''}
+        ${count>1 ? `<div class="num">Kiste ${i} von ${count}</div>` : ''}
+        <div class="write-area"></div>
+      </div>`);
+    }
+  });
+
+  const furnitureLabels = [];
+  state.furniture.forEach(item => {
+    const room = roomForFurniture(item);
+    const floor = floorsById[item.floorId];
+    const count = Math.max(1, parseInt(item.count,10) || 1);
+    for(let i=1;i<=count;i++){
+      furnitureLabels.push(`<div class="label" style="border-color:${room?room.color:'#000'}">
+        <div class="room">${room ? escapeHtml(room.name) : '— kein Raum —'}</div>
+        ${floor ? `<div class="content">${escapeHtml(floor.name)}</div>` : ''}
+        <div class="content">Möbel: ${escapeHtml(item.name)}</div>
+        ${count>1 ? `<div class="num">Teil ${i} von ${count}</div>` : ''}
+      </div>`);
+    }
+  });
+
+  if(!boxLabels.length && !furnitureLabels.length){ alert('Keine Kisten- oder Möbel-Etiketten definiert.'); return; }
+  document.getElementById('printLabels').innerHTML = boxLabels.join('') + furnitureLabels.join('');
   window.print();
 });
 
