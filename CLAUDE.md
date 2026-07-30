@@ -59,13 +59,29 @@ Kisten-Beschriftung.
    Das KW-Dropdown selbst (statt freier KW/Jahr-Zahlenfelder) listet nur die Wochen im
    selben Bereich wie die KW-Übersicht (`baseWeekRange()`/`weeksInRange()`, von beiden
    gemeinsam genutzt) und aktualisiert sich automatisch, wenn sich der Umzugstermin ändert.
-3. **Grundriss & Kisten** — mehrere Stockwerke (Standard: 4, umbenennbar/löschbar/neu
-   anlegbar über Tabs). Pro Stockwerk beliebig viele Räume, frei verschiebbar/skalierbar
+3. **Grundriss & Kisten** — mehrere Stockwerke (Standard/fix: 4, nur umbenennbar über die Tabs).
+   Stockwerke können bewusst **nicht** mehr angelegt oder gelöscht werden (früher ging das über
+   „+ Stock"/„×" auf den Tabs) — seit jedes Stockwerk einen echten Grundriss als Hintergrundbild
+   haben kann (`planImage`, siehe unten), wäre ein versehentliches Löschen eines Stocks der
+   Verlust des zugehörigen Grundriss-Hintergrunds bzw. aller Räume/Möbel darauf; das soll nicht
+   aus Versehen passieren können. Pro Stockwerk beliebig viele Räume, frei verschiebbar/skalierbar
    (Pointer-Events, Koordinaten in %). Zusätzlich **Möbel**: analog zu Räumen frei
    verschiebbar/skalierbar auf demselben Grundriss (grobe Planung, kein exakter Massstab,
    optisch unterscheidbar durch gestrichelten Rand statt Vollfarbe); pro Möbelstück ist eine
-   Anzahl Etiketten einstellbar (Möbel-Liste unter dem Grundriss), für mehrteilige Möbel. Ein
-   echtes Grundriss-Foto als Hintergrund ist bewusst (noch) nicht umgesetzt.
+   Anzahl Etiketten einstellbar (Möbel-Liste unter dem Grundriss), für mehrteilige Möbel.
+   **Echter Grundriss als Hintergrund**: pro Stockwerk optional ein `planImage`-Feld (Dateiname,
+   z.B. `"UG.svg"`) in `floors.json`. Die SVGs (600×600, "Plain SVG"-Export aus Inkscape, kein
+   Inkscape-/Sodipodi-Namespace) liegen unter `server/floors/` — **nicht** unter `server/data/`,
+   das ist das gitignorte, auf dem Coolify-Volume liegende Verzeichnis für die veränderlichen
+   JSON-Collections und würde beim Deploy überschrieben/versteckt. Flask liefert `server/floors/`
+   als Static-Folder unter `/floors/<datei>` aus (`Flask(__name__, static_folder="floors",
+   static_url_path="/floors")` in `server/app.py`); der Dockerfile kopiert das Verzeichnis
+   entsprechend mit ins Image. `.plan-area` ist deshalb bewusst quadratisch
+   (`aspect-ratio:1/1`), passend zum 600×600-`viewBox` der SVGs — damit die
+   Prozent-Koordinaten von Räumen/Möbeln 1:1 auf das Hintergrundbild passen, ohne
+   Letterboxing-Mathematik. Ein Toggle-Button („Grundriss ausblenden/anzeigen",
+   `showFloorPlanBg`) blendet das Hintergrundbild pro Sitzung aus, ohne die Positionen zu
+   beeinflussen; der Button ist nur sichtbar, wenn das aktive Stockwerk ein `planImage` hat.
    **Kisten-Etiketten**: bewusst *keine* Inhalts-/Zerbrechlich-Erfassung in der App — pro Raum
    wird nur eine Anzahl benötigter Etiketten festgelegt (`state.boxes` ist `{id, roomId,
    count}`, keine Kistennummern mehr). Jede gedruckte Etikette hat ein leeres Feld zum

@@ -154,9 +154,10 @@ select.assignee-chip{border:none;cursor:pointer;font-family:inherit;}
 /* ---------- Grundriss tab ---------- */
 .plan-toolbar{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
 .plan-area{
-  position:relative;width:100%;height:440px;background:#fbfbfa;
-  border:1px solid var(--border-strong);border-radius:8px;overflow:hidden;margin-bottom:16px;
+  position:relative;width:100%;max-width:640px;aspect-ratio:1/1;background:#fbfbfa;
+  border:1px solid var(--border-strong);border-radius:8px;overflow:hidden;margin:0 auto 16px;
 }
+.plan-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;}
 .room-box{
   position:absolute;border:2px solid; border-radius:5px;
   display:flex;flex-direction:column;justify-content:flex-end;padding:6px;cursor:move;user-select:none;
@@ -186,13 +187,10 @@ select.assignee-chip{border:none;cursor:pointer;font-family:inherit;}
 .floor-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
 .floor-tab{
   display:flex;align-items:center;gap:6px;border:1px solid var(--border-strong);background:#fff;
-  border-radius:7px;padding:6px 6px 6px 12px;font-size:0.84rem;font-weight:600;color:var(--ink-soft);
+  border-radius:7px;padding:6px 12px;font-size:0.84rem;font-weight:600;color:var(--ink-soft);
 }
 .floor-tab.active{background:var(--ink);border-color:var(--ink);color:#fff;}
 .floor-tab .floor-name{cursor:text;outline:none;}
-.floor-tab .floor-del{border:none;background:rgba(255,255,255,0.25);color:inherit;border-radius:4px;width:18px;height:18px;font-size:0.7rem;line-height:1;cursor:pointer;}
-.floor-tab:not(.active) .floor-del{background:var(--grey-soft);}
-.floor-add-btn{border:1px dashed var(--border-strong);background:none;border-radius:7px;padding:6px 12px;font-size:0.84rem;color:var(--ink-soft);cursor:pointer;}
 
 .box-table{width:100%;border-collapse:collapse;margin-top:6px;}
 .box-table th{text-align:left;font-size:0.7rem;text-transform:uppercase;color:var(--ink-soft);border-bottom:1px solid var(--border-strong);padding:6px 8px;}
@@ -325,6 +323,7 @@ footer.note{margin-top:26px;font-size:0.76rem;color:var(--ink-soft);border-top:1
       <div class="plan-toolbar">
         <button class="btn small" id="addRoomBtn">+ Raum hinzufügen</button>
         <button class="btn small" id="addFurnitureBtn">+ Möbel hinzufügen</button>
+        <button class="btn ghost small" id="toggleBgBtn">Grundriss ausblenden</button>
         <button class="btn ghost small" id="clearPlanBtn">Stock leeren</button>
       </div>
       <div class="plan-area" id="planArea"></div>
@@ -500,6 +499,7 @@ const DEFAULT_MOVE_DATE = '2026-10-31';
 ---------------------------------------------------------------- */
 let state = { moveDate:null, tasks:[], rooms:[], boxes:[], people:[], floors:[], furniture:[], pausedWeeks:[] };
 let activeFloorId = null;
+let showFloorPlanBg = true;
 
 async function initState(){
   state.moveDate = await DataStore.load('settings', {moveDate:DEFAULT_MOVE_DATE});
@@ -519,6 +519,12 @@ async function initState(){
   let migrated = false;
   state.rooms.forEach(r => { if(!r.floorId){ r.floorId = state.floors[0].id; migrated = true; } });
   if(migrated) await persistRooms();
+  // migrate: attach known floor-plan SVGs (server/floors/) to floors by name, for floors saved
+  // before the planImage field existed (e.g. the already-deployed production dataset)
+  const FLOOR_PLAN_BY_NAME = {'Untergeschoss':'UG.svg','Erdgeschoss':'EG.svg','1. Stock':'OG_1.svg','2. Stock':'OG_2.svg'};
+  let floorImagesMigrated = false;
+  state.floors.forEach(f => { if(!f.planImage && FLOOR_PLAN_BY_NAME[f.name]){ f.planImage = FLOOR_PLAN_BY_NAME[f.name]; floorImagesMigrated = true; } });
+  if(floorImagesMigrated) await persistFloors();
   activeFloorId = state.floors[0].id;
   if(!state.tasks){ state.tasks = buildSeedTasks(state.moveDate); await persistTasks(); }
 }
@@ -1032,6 +1038,10 @@ document.getElementById('addFurnitureBtn').addEventListener('click', async () =>
   await persistFurniture();
   renderGrundriss();
 });
+document.getElementById('toggleBgBtn').addEventListener('click', () => {
+  showFloorPlanBg = !showFloorPlanBg;
+  renderGrundriss();
+});
 document.getElementById('clearPlanBtn').addEventListener('click', async () => {
   if(!confirm('Alle Räume und Möbel auf diesem Stock löschen? Zugewiesene Kisten-Etiketten für diese Räume werden ebenfalls entfernt.')) return;
   const roomIdsOnFloor = state.rooms.filter(r => r.floorId === activeFloorId).map(r => r.id);
@@ -1042,31 +1052,6 @@ document.getElementById('clearPlanBtn').addEventListener('click', async () => {
   renderGrundriss();
 });
 document.getElementById('floorTabs').addEventListener('click', async (e) => {
-  const addBtn = e.target.closest('[data-action="add-floor"]');
-  if(addBtn){
-    const floor = { id: uid('floor'), name: 'Stock ' + (state.floors.length + 1) };
-    state.floors.push(floor);
-    await persistFloors();
-    activeFloorId = floor.id;
-    renderFloorTabs(); renderGrundriss();
-    return;
-  }
-  const delBtn = e.target.closest('[data-action="del-floor"]');
-  if(delBtn){
-    e.stopPropagation();
-    if(state.floors.length <= 1){ alert('Mindestens ein Stock muss bestehen bleiben.'); return; }
-    const floorId = delBtn.closest('.floor-tab').dataset.id;
-    if(!confirm('Diesen Stock inkl. aller Räume und Möbel löschen? Zugewiesene Kisten-Etiketten für diese Räume werden ebenfalls entfernt.')) return;
-    const roomIdsOnFloor = state.rooms.filter(r => r.floorId === floorId).map(r => r.id);
-    state.floors = state.floors.filter(f => f.id !== floorId);
-    state.rooms = state.rooms.filter(r => r.floorId !== floorId);
-    state.furniture = state.furniture.filter(f => f.floorId !== floorId);
-    state.boxes = state.boxes.filter(b => !roomIdsOnFloor.includes(b.roomId));
-    await Promise.all([persistFloors(), persistRooms(), persistFurniture(), persistBoxes()]);
-    if(activeFloorId === floorId) activeFloorId = state.floors[0].id;
-    renderFloorTabs(); renderGrundriss();
-    return;
-  }
   const tab = e.target.closest('.floor-tab');
   if(tab && !e.target.classList.contains('floor-name')){
     activeFloorId = tab.dataset.id;
@@ -1079,8 +1064,7 @@ function renderFloorTabs(){
   container.innerHTML = state.floors.map(f => `
     <div class="floor-tab ${f.id===activeFloorId?'active':''}" data-id="${f.id}">
       <span class="floor-name" contenteditable="true" spellcheck="false">${escapeHtml(f.name)}</span>
-      <button type="button" class="floor-del" data-action="del-floor" title="Stock löschen">×</button>
-    </div>`).join('') + `<button type="button" class="floor-add-btn" data-action="add-floor">+ Stock</button>`;
+    </div>`).join('');
 
   container.querySelectorAll('.floor-name').forEach(nameEl => {
     nameEl.addEventListener('click', () => { activeFloorId = nameEl.closest('.floor-tab').dataset.id; renderFloorTabs(); renderGrundriss(); });
@@ -1138,6 +1122,21 @@ function renderGrundriss(){
   renderFloorTabs();
   const area = document.getElementById('planArea');
   area.innerHTML = '';
+  const activeFloor = state.floors.find(f => f.id === activeFloorId);
+  const toggleBgBtn = document.getElementById('toggleBgBtn');
+  if(activeFloor && activeFloor.planImage){
+    toggleBgBtn.style.display = '';
+    toggleBgBtn.textContent = showFloorPlanBg ? 'Grundriss ausblenden' : 'Grundriss anzeigen';
+    if(showFloorPlanBg){
+      const bg = document.createElement('img');
+      bg.className = 'plan-bg';
+      bg.src = '/floors/' + activeFloor.planImage;
+      bg.alt = '';
+      area.appendChild(bg);
+    }
+  } else {
+    toggleBgBtn.style.display = 'none';
+  }
   const roomsOnFloor = state.rooms.filter(r => r.floorId === activeFloorId);
   roomsOnFloor.forEach(room => {
     const el = document.createElement('div');

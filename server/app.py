@@ -15,7 +15,7 @@ INDEX_HTML = Path(os.environ["INDEX_HTML_PATH"]) if "INDEX_HTML_PATH" in os.envi
 
 VALID_COLLECTIONS = {"tasks", "rooms", "boxes", "people", "floors", "settings", "furniture", "pausedWeeks"}
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="floors", static_url_path="/floors")
 
 
 def collection_path(collection: str) -> Path:

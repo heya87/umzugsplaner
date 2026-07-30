@@ -3,6 +3,7 @@ WORKDIR /app
 COPY server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY server/app.py .
+COPY server/floors ./floors
 COPY index.html .
 VOLUME /app/data
 EXPOSE 8000
