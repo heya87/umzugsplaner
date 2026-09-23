@@ -189,7 +189,8 @@ select.assignee-chip{border:none;cursor:pointer;font-family:inherit;}
   display:flex;align-items:center;gap:6px;border:1px solid var(--border-strong);background:#fff;
   border-radius:7px;padding:6px 12px;font-size:0.84rem;font-weight:600;color:var(--ink-soft);
 }
-.floor-tab.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+.floor-tab{color:var(--floor-color, var(--ink-soft));border-color:var(--floor-color, var(--border-strong));}
+.floor-tab.active{background:var(--floor-color, var(--ink));border-color:var(--floor-color, var(--ink));color:#fff;}
 .floor-tab .floor-name{cursor:text;outline:none;}
 
 .box-table{width:100%;border-collapse:collapse;margin-top:6px;}
@@ -216,6 +217,8 @@ footer.note{margin-top:26px;font-size:0.76rem;color:var(--ink-soft);border-top:1
 @media (max-width:640px){
   .task-row{flex-wrap:wrap;}
   form.add-form input[type=text]{min-width:100%;}
+  .room-box{padding:3px;}
+  .room-box .room-label{font-size:0.6rem;padding:1px 3px;}
 }
 </style>
 </head>
@@ -1059,10 +1062,13 @@ document.getElementById('floorTabs').addEventListener('click', async (e) => {
   }
 });
 
+// Farbe der Stockwerk-Tabs und Raum-Labels pro Stockwerk (Reihenfolge wie state.floors: UG, EG, 1. OG, 2. OG)
+const FLOOR_LABEL_COLORS = ['#000000', '#c62828', '#1565c0', '#2e7d32'];
+
 function renderFloorTabs(){
   const container = document.getElementById('floorTabs');
-  container.innerHTML = state.floors.map(f => `
-    <div class="floor-tab ${f.id===activeFloorId?'active':''}" data-id="${f.id}">
+  container.innerHTML = state.floors.map((f, i) => `
+    <div class="floor-tab ${f.id===activeFloorId?'active':''}" data-id="${f.id}" style="--floor-color:${FLOOR_LABEL_COLORS[i] || 'var(--ink)'}">
       <span class="floor-name" contenteditable="true" spellcheck="false">${escapeHtml(f.name)}</span>
     </div>`).join('');
 
@@ -1137,6 +1143,7 @@ function renderGrundriss(){
   } else {
     toggleBgBtn.style.display = 'none';
   }
+  const labelColor = FLOOR_LABEL_COLORS[state.floors.indexOf(activeFloor)] || 'var(--ink)';
   const roomsOnFloor = state.rooms.filter(r => r.floorId === activeFloorId);
   roomsOnFloor.forEach(room => {
     const el = document.createElement('div');
@@ -1147,7 +1154,7 @@ function renderGrundriss(){
     el.style.borderColor = room.color;
     el.dataset.id = room.id;
     el.innerHTML = `
-      <span class="room-label" contenteditable="true" spellcheck="false" data-nodrag>${escapeHtml(room.name)}</span>
+      <span class="room-label" contenteditable="true" spellcheck="false" data-nodrag style="color:${labelColor}">${escapeHtml(room.name)}</span>
       <button class="room-del" title="Raum löschen" data-nodrag>×</button>
       <div class="resize-handle"></div>`;
     area.appendChild(el);
